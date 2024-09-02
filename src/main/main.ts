@@ -14,6 +14,7 @@ import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
+import sqlite3 from 'sqlite3';
 
 class AppUpdater {
   constructor() {
@@ -55,6 +56,22 @@ const installExtensions = async () => {
     )
     .catch(console.log);
 };
+// Open the database connection
+const dbPath = path.join(__dirname, 'test.db');
+const db = new sqlite3.Database(dbPath);
+
+// Handle database queries
+ipcMain.handle('query-database', async (event, query) => {
+  return new Promise((resolve, reject) => {
+    db.all(query, (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+});
+
+
+
 
 const createWindow = async () => {
   if (isDebug) {
@@ -135,3 +152,6 @@ app
     });
   })
   .catch(console.log);
+
+
+  
