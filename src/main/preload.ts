@@ -24,6 +24,7 @@ const electronHandler = {
   },
   // Add this new method for database queries
   queryDatabase: (query: string) => ipcRenderer.invoke('query-database', query),
+  insertData: (data: any) => ipcRenderer.invoke('insert-data', data),
 };
 
 contextBridge.exposeInMainWorld('electron', electronHandler);

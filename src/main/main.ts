@@ -70,7 +70,16 @@ ipcMain.handle('query-database', async (event, query) => {
   });
 });
 
-
+ipcMain.handle('insert-data', async (event, data) => {
+  return new Promise((resolve, reject) => {
+    const query = `INSERT INTO Shocks (User_ID, Vehicle_Type_ID, Nickname_ID, Nickname, Make, Model, Year) 
+                   VALUES (?, ?, ?, ?, ?, ?, ?)`;
+    db.run(query, [data.User_ID, data.Vehicle_Type_ID, data.Nickname_ID, data.Nickname, data.Make, data.Model, data.Year], (err) => {
+      if (err) reject(err);
+      else resolve('Vehicle data inserted successfully');
+    });
+  });
+});
 
 
 const createWindow = async () => {

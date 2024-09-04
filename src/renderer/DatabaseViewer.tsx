@@ -1,43 +1,107 @@
 import React, { useState, useEffect } from 'react';
 
+interface VehicleData {
+  User_ID: number;
+  Vehicle_Type_ID: number;
+  Nickname_ID: number;
+  Nickname: string;
+  Make: string;
+  Model: string;
+  Year: number;
+}
+
 const DatabaseViewer: React.FC = () => {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<VehicleData[]>([]);
+  const [newData, setNewData] = useState<VehicleData>({
+    User_ID: 0,
+    Vehicle_Type_ID: 0,
+    Nickname_ID: 0,
+    Nickname: '',
+    Make: '',
+    Model: '',
+    Year: 0
+  });
+
+  const fetchData = async () => {
+    try {
+      const result = await window.electron.queryDatabase('SELECT * FROM Shocks');
+      setData(result);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const result = await window.electron.queryDatabase('SELECT * FROM Shocks');
-        setData(result);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
-    };
-
     fetchData();
   }, []);
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setNewData(prev => ({
+      ...prev,
+      [name]: name === 'Year' ? parseInt(value) || 0 : value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await window.electron.insertData(newData);
+      setNewData({
+        User_ID: 0,
+        Vehicle_Type_ID: 0,
+        Nickname_ID: 0,
+        Nickname: '',
+        Make: '',
+        Model: '',
+        Year: 0
+      });
+      fetchData(); // Refresh the data after insertion
+    } catch (error) {
+      console.error('Error inserting data:', error);
+    }
+  };
+
   return (
-    <div className="container mx-auto p-6">
-      <h2 className="text-2xl font-bold mb-4">Database Contents</h2>
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-white border border-gray-300">
-          <thead className="bg-gray-100">
+    <div style={{ padding: '20px' }}>
+      <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '20px' }}>Vehicle Database</h2>
+      
+      <form onSubmit={handleSubmit} style={{ marginBottom: '20px' }}>
+        <input type="number" name="User_ID" value={newData.User_ID} onChange={handleInputChange} placeholder="User ID" style={{ marginRight: '10px', padding: '5px' }} />
+        <input type="number" name="Vehicle_Type_ID" value={newData.Vehicle_Type_ID} onChange={handleInputChange} placeholder="Vehicle Type ID" style={{ marginRight: '10px', padding: '5px' }} />
+        <input type="number" name="Nickname_ID" value={newData.Nickname_ID} onChange={handleInputChange} placeholder="Nickname ID" style={{ marginRight: '10px', padding: '5px' }} />
+        <input type="text" name="Nickname" value={newData.Nickname} onChange={handleInputChange} placeholder="Nickname" style={{ marginRight: '10px', padding: '5px' }} />
+        <input type="text" name="Make" value={newData.Make} onChange={handleInputChange} placeholder="Make" style={{ marginRight: '10px', padding: '5px' }} />
+        <input type="text" name="Model" value={newData.Model} onChange={handleInputChange} placeholder="Model" style={{ marginRight: '10px', padding: '5px' }} />
+        <input type="number" name="Year" value={newData.Year} onChange={handleInputChange} placeholder="Year" style={{ marginRight: '10px', padding: '5px' }} />
+        <button type="submit" style={{ padding: '5px 10px', backgroundColor: '#4CAF50', color: 'white', border: 'none' }}>Insert Vehicle</button>
+      </form>
+
+      <button onClick={fetchData} style={{ marginBottom: '20px', padding: '5px 10px', backgroundColor: '#008CBA', color: 'white', border: 'none' }}>Refresh Data</button>
+
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
             <tr>
-              {data[0] && Object.keys(data[0]).map(key => (
-                <th key={key} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {key}
-                </th>
-              ))}
+              <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>User ID</th>
+              <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Vehicle Type ID</th>
+              <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Nickname ID</th>
+              <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Nickname</th>
+              <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Make</th>
+              <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Model</th>
+              <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Year</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody>
             {data.map((row, index) => (
-              <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                {Object.values(row).map((value, i) => (
-                  <td key={i} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {value}
-                  </td>
-                ))}
+              <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#f2f2f2' : 'white' }}>
+                <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{row.User_ID}</td>
+                <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{row.Vehicle_Type_ID}</td>
+                <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{row.Nickname_ID}</td>
+                <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{row.Nickname}</td>
+                <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{row.Make}</td>
+                <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{row.Model}</td>
+                <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{row.Year}</td>
               </tr>
             ))}
           </tbody>
