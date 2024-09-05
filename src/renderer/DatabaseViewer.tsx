@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import styled from 'styled-components';
 
 interface VehicleData {
   User_ID: number;
@@ -9,6 +10,77 @@ interface VehicleData {
   Model: string;
   Year: number;
 }
+
+const Container = styled.div`
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  font-family: Arial, sans-serif;
+`;
+
+const Title = styled.h2`
+  font-size: 2rem;
+  color: #333;
+  margin-bottom: 1.5rem;
+`;
+
+const Form = styled.form`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+  background-color: #f5f5f5;
+  padding: 1.5rem;
+  border-radius: 8px;
+`;
+
+const Input = styled.input`
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+`;
+
+const Button = styled.button`
+  padding: 0.5rem 1rem;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+
+  &:hover {
+    background-color: #45a049;
+  }
+`;
+
+const Table = styled.table`
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  border-radius: 8px;
+  overflow: hidden;
+`;
+
+const Th = styled.th`
+  background-color: #f2f2f2;
+  color: #333;
+  font-weight: bold;
+  padding: 1rem;
+  text-align: left;
+`;
+
+const Td = styled.td`
+  padding: 1rem;
+  border-top: 1px solid #ddd;
+`;
+
+const ActionButton = styled(Button)`
+  margin-right: 0.5rem;
+`;
 
 const DatabaseViewer: React.FC = () => {
   const [data, setData] = useState<VehicleData[]>([]);
@@ -21,6 +93,7 @@ const DatabaseViewer: React.FC = () => {
     Model: '',
     Year: 0
   });
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   const fetchData = async () => {
     try {
@@ -46,7 +119,12 @@ const DatabaseViewer: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await window.electron.insertData(newData);
+      if (editingId) {
+        await window.electron.updateData(newData);
+        setEditingId(null);
+      } else {
+        await window.electron.insertData(newData);
+      }
       setNewData({
         User_ID: 0,
         Vehicle_Type_ID: 0,
@@ -56,58 +134,86 @@ const DatabaseViewer: React.FC = () => {
         Model: '',
         Year: 0
       });
-      fetchData(); // Refresh the data after insertion
+      fetchData();
     } catch (error) {
-      console.error('Error inserting data:', error);
+      console.error('Error saving data:', error);
     }
   };
 
+  const handleDelete = async (id: number) => {
+    try {
+      await window.electron.deleteData(id);
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting data:', error);
+    }
+  };
+
+  const handleEdit = (row: VehicleData) => {
+    setNewData(row);
+    setEditingId(row.Nickname_ID);
+  };
+
   return (
-    <div style={{ padding: '20px' }}>
-      <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '20px' }}>Vehicle Database</h2>
+    <Container>
+      <Title>Vehicle Database</Title>
       
-      <form onSubmit={handleSubmit} style={{ marginBottom: '20px' }}>
-        <input type="number" name="User_ID" value={newData.User_ID} onChange={handleInputChange} placeholder="User ID" style={{ marginRight: '10px', padding: '5px' }} />
-        <input type="number" name="Vehicle_Type_ID" value={newData.Vehicle_Type_ID} onChange={handleInputChange} placeholder="Vehicle Type ID" style={{ marginRight: '10px', padding: '5px' }} />
-        <input type="number" name="Nickname_ID" value={newData.Nickname_ID} onChange={handleInputChange} placeholder="Nickname ID" style={{ marginRight: '10px', padding: '5px' }} />
-        <input type="text" name="Nickname" value={newData.Nickname} onChange={handleInputChange} placeholder="Nickname" style={{ marginRight: '10px', padding: '5px' }} />
-        <input type="text" name="Make" value={newData.Make} onChange={handleInputChange} placeholder="Make" style={{ marginRight: '10px', padding: '5px' }} />
-        <input type="text" name="Model" value={newData.Model} onChange={handleInputChange} placeholder="Model" style={{ marginRight: '10px', padding: '5px' }} />
-        <input type="number" name="Year" value={newData.Year} onChange={handleInputChange} placeholder="Year" style={{ marginRight: '10px', padding: '5px' }} />
-        <button type="submit" style={{ padding: '5px 10px', backgroundColor: '#4CAF50', color: 'white', border: 'none' }}>Insert Vehicle</button>
-      </form>
+      <Form onSubmit={handleSubmit}>
+        <Input type="number" name="User_ID" value={newData.User_ID} onChange={handleInputChange} placeholder="User ID" />
+        <Input type="number" name="Vehicle_Type_ID" value={newData.Vehicle_Type_ID} onChange={handleInputChange} placeholder="Vehicle Type ID" />
+        <Input type="number" name="Nickname_ID" value={newData.Nickname_ID} onChange={handleInputChange} placeholder="Nickname ID" disabled={editingId !== null} />
+        <Input type="text" name="Nickname" value={newData.Nickname} onChange={handleInputChange} placeholder="Nickname" />
+        <Input type="text" name="Make" value={newData.Make} onChange={handleInputChange} placeholder="Make" />
+        <Input type="text" name="Model" value={newData.Model} onChange={handleInputChange} placeholder="Model" />
+        <Input type="number" name="Year" value={newData.Year} onChange={handleInputChange} placeholder="Year" />
+        <Button type="submit">
+  {editingId !== null && editingId !== undefined ? 'Update Vehicle' : 'Insert Vehicle'}
+</Button>
+{editingId !== null && editingId !== undefined && (
+  <Button type="button" onClick={() => setEditingId(null)} style={{ backgroundColor: '#f44336' }}>
+    Cancel Edit
+  </Button>
+)}
+      </Form>
 
-      <button onClick={fetchData} style={{ marginBottom: '20px', padding: '5px 10px', backgroundColor: '#008CBA', color: 'white', border: 'none' }}>Refresh Data</button>
+      <Button onClick={fetchData} style={{ marginBottom: '1rem', backgroundColor: '#008CBA' }}>Refresh Data</Button>
 
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>
-              <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>User ID</th>
-              <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Vehicle Type ID</th>
-              <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Nickname ID</th>
-              <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Nickname</th>
-              <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Make</th>
-              <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Model</th>
-              <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Year</th>
+      <Table>
+        <thead>
+          <tr>
+            <Th>User ID</Th>
+            <Th>Vehicle Type ID</Th>
+            <Th>Nickname ID</Th>
+            <Th>Nickname</Th>
+            <Th>Make</Th>
+            <Th>Model</Th>
+            <Th>Year</Th>
+            <Th>Actions</Th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((row, index) => (
+            <tr key={index}>
+              <Td>{row.User_ID}</Td>
+              <Td>{row.Vehicle_Type_ID}</Td>
+              <Td>{row.Nickname_ID}</Td>
+              <Td>{row.Nickname}</Td>
+              <Td>{row.Make}</Td>
+              <Td>{row.Model}</Td>
+              <Td>{row.Year}</Td>
+              <Td>
+                <ActionButton onClick={() => handleEdit(row)} style={{ backgroundColor: '#4CAF50' }}>
+                  Edit
+                </ActionButton>
+                <ActionButton onClick={() => handleDelete(row.Nickname_ID)} style={{ backgroundColor: '#FF0000' }}>
+                  Delete
+                </ActionButton>
+              </Td>
             </tr>
-          </thead>
-          <tbody>
-            {data.map((row, index) => (
-              <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#f2f2f2' : 'white' }}>
-                <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{row.User_ID}</td>
-                <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{row.Vehicle_Type_ID}</td>
-                <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{row.Nickname_ID}</td>
-                <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{row.Nickname}</td>
-                <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{row.Make}</td>
-                <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{row.Model}</td>
-                <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{row.Year}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+          ))}
+        </tbody>
+      </Table>
+    </Container>
   );
 };
 

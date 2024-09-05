@@ -81,6 +81,27 @@ ipcMain.handle('insert-data', async (event, data) => {
   });
 });
 
+ipcMain.handle('delete-data', async (event, id) => {
+  return new Promise((resolve, reject) => {
+    const query = `DELETE FROM Shocks WHERE Nickname_ID = ?`;
+    db.run(query, [id], (err) => {
+      if (err) reject(err);
+      else resolve('Vehicle data deleted successfully');
+    });
+  });
+});
+
+ipcMain.handle('update-data', async (event, data) => {
+  return new Promise((resolve, reject) => {
+    const query = `UPDATE Shocks 
+                   SET User_ID = ?, Vehicle_Type_ID = ?, Nickname = ?, Make = ?, Model = ?, Year = ? 
+                   WHERE Nickname_ID = ?`;
+    db.run(query, [data.User_ID, data.Vehicle_Type_ID, data.Nickname, data.Make, data.Model, data.Year, data.Nickname_ID], (err) => {
+      if (err) reject(err);
+      else resolve('Vehicle data updated successfully');
+    });
+  });
+});
 
 const createWindow = async () => {
   if (isDebug) {

@@ -25,6 +25,8 @@ const electronHandler = {
   // Add this new method for database queries
   queryDatabase: (query: string) => ipcRenderer.invoke('query-database', query),
   insertData: (data: any) => ipcRenderer.invoke('insert-data', data),
+  deleteData: (id: number) => ipcRenderer.invoke('delete-data', id), // Add delete functionality
+  updateData: (data: any) => ipcRenderer.invoke('update-data', data),
 };
 
 contextBridge.exposeInMainWorld('electron', electronHandler);
