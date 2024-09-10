@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 
 interface VehicleData {
   User_ID: number;
@@ -84,6 +85,10 @@ const ActionButton = styled(Button)`
 
 const DatabaseViewer: React.FC = () => {
   const [data, setData] = useState<VehicleData[]>([]);
+  const navigate = useNavigate();
+  const handleBack = () => {
+    navigate(-1);
+  };
   const [newData, setNewData] = useState<VehicleData>({
     User_ID: 0,
     Vehicle_Type_ID: 0,
@@ -157,6 +162,9 @@ const DatabaseViewer: React.FC = () => {
   return (
     <Container>
       <Title>Vehicle Database</Title>
+      <Button onClick={handleBack} style={{ marginBottom: '1rem', backgroundColor: '#008CBA' }}>
+        Back
+      </Button>
       
       <Form onSubmit={handleSubmit}>
         <Input type="number" name="User_ID" value={newData.User_ID} onChange={handleInputChange} placeholder="User ID" />
