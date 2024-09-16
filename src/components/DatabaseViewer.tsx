@@ -102,7 +102,7 @@ const DatabaseViewer: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const result = await window.electron.queryDatabase('SELECT * FROM Shocks');
+      const result = await window.electron.queryDatabase('SELECT * FROM Vehicles');
       setData(result);
     } catch (error) {
       console.error('Error fetching data:', error);

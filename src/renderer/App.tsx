@@ -1,9 +1,13 @@
 import React from 'react';
 import { HashRouter as Router, Route, Routes, Link } from 'react-router-dom';
 import styled from 'styled-components';
-import DatabaseViewer from './DatabaseViewer';
+import VehicleManager from '../components/VehicleManager';
+import DatabaseViewer from '../components/DatabaseViewer';
+import ShockSetManager from '../components/ShockSetManager';
+import ShockManager from '../components/ShockManager';
+import AdjusterManager from '../components/AdjusterManager';
+import Main from 'electron/main';
 
-// Styles for the main page
 const MainContainer = styled.div`
   padding: 2rem;
   max-width: 1200px;
@@ -37,12 +41,22 @@ const App: React.FC = () => {
           path="/"
           element={
             <MainContainer>
-              <h1>Welcome to the Vehicle Management System</h1>
-              <MainButton to="/vehicles">Go to Vehicle Database</MainButton>
+              <h1>Welcome to Muggs Demo</h1>
+              <MainButton to="/vehicles">Manage Your Vehicles</MainButton>
+              <MainButton to="/database-viewer">View Database</MainButton>
+              <MainButton to="/shock-sets">Manage Your Shock Sets</MainButton>
+              <MainButton to="/shocks">Manage Your Shocks</MainButton>
+              <MainButton to="/adjusters">Manage Your Adjusters</MainButton>
             </MainContainer>
           }
         />
-        <Route path="/vehicles" element={<DatabaseViewer />} />
+        <Route path="/vehicles" element={<VehicleManager />} />
+        <Route path="/database-viewer" element={<DatabaseViewer />} />
+        <Route path="/shock-sets" element={<ShockSetManager />} />
+        <Route path="/shocks" element={<ShockManager />} />
+        <Route path="/adjusters" element={<AdjusterManager  />} />
+        <Route path="/vehicles" element={<VehicleManager />} />
+        <Route path="/vehicles/:vehicleId/shocks" element={<ShockManager />} />
       </Routes>
     </Router>
   );

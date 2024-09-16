@@ -27,6 +27,21 @@ const electronHandler = {
   insertData: (data: any) => ipcRenderer.invoke('insert-data', data),
   deleteData: (id: number) => ipcRenderer.invoke('delete-data', id), // Add delete functionality
   updateData: (data: any) => ipcRenderer.invoke('update-data', data),
+  
+  insertShockSet: (data: any) => ipcRenderer.invoke('insert-shock-set', data),
+  updateShockSet: (data: any) => ipcRenderer.invoke('update-shock-set', data),
+  deleteShockSet: (id: number) => ipcRenderer.invoke('delete-shock-set', id),
+
+// Shocks IPC methods
+  queryShocks: (shockSetId: number) => ipcRenderer.invoke('query-shocks', shockSetId),
+  insertShock: (data: any) => ipcRenderer.invoke('insert-shock', data),
+  updateShock: (data: any) => ipcRenderer.invoke('update-shock', data),
+  deleteShock: (id: number) => ipcRenderer.invoke('delete-shock', id),
+  // Adjusters IPC methods
+  queryAdjusters: (shockId: number) => ipcRenderer.invoke('query-adjusters', shockId),
+  insertAdjuster: (data: any) => ipcRenderer.invoke('insert-adjuster', data),
+  updateAdjuster: (data: any) => ipcRenderer.invoke('update-adjuster', data),
+  deleteAdjuster: (id: number) => ipcRenderer.invoke('delete-adjuster', id),
 };
 
 contextBridge.exposeInMainWorld('electron', electronHandler);
