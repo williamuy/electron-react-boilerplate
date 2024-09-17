@@ -55,7 +55,7 @@ const App: React.FC = () => {
         <Route path="/shock-sets" element={<ShockSetManager />} />
         <Route path="/shocks" element={<ShockManager />} />
         <Route path="/adjusters" element={<AdjusterManager  />} />
-        <Route path="/vehicles" element={<VehicleManager />} />
+        <Route path="/shocks/:shockId/adjusters" element={<AdjusterManager />} /> {/* Add this route */}
         <Route path="/vehicles/:vehicleId/shocks" element={<ShockManager />} />
       </Routes>
     </Router>

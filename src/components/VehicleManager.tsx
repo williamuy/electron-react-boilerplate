@@ -54,15 +54,6 @@ const Button = styled.button`
   }
 `;
 
-const FormModal = styled.div`
-  background-color: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-  max-width: 400px;
-  margin: 0 auto;
-`;
-
 const Input = styled.input`
   padding: 0.5rem;
   border: 1px solid #ccc;
@@ -71,7 +62,6 @@ const Input = styled.input`
   width: 100%;
 `;
 
-// VehicleManager Component
 const VehicleManager: React.FC = () => {
   const [vehicles, setVehicles] = useState<VehicleData[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -84,7 +74,7 @@ const VehicleManager: React.FC = () => {
     Model: '',
     Year: 0,
   });
-  const [showForm, setShowForm] = useState(false);  // State to control modal visibility
+  const [showForm, setShowForm] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -133,7 +123,7 @@ const VehicleManager: React.FC = () => {
         Model: '',
         Year: 0,
       });
-      setShowForm(false);  // Close form after saving
+      setShowForm(false);
       fetchVehicles();
     } catch (error) {
       console.error('Error saving vehicle:', error);
@@ -161,19 +151,27 @@ const VehicleManager: React.FC = () => {
     navigate(-1); // Navigates back to the previous page
   };
 
+  const goToShocks = (vehicleId: number) => {
+    navigate(`/vehicles/${vehicleId}/shocks`); // Navigate to the shocks for this vehicle
+  };
+
   return (
     <Container>
       <Title>Your Vehicles</Title>
       <Button onClick={handleBack} style={{ marginBottom: '1rem', backgroundColor: '#008CBA' }}>
         Back
       </Button>
-      <Button onClick={() => setShowForm(true)}>Add New Vehicle</Button>
+      <Button onClick={() => {
+        setShowForm(true);
+        setEditingId(null); // Ensure you're adding a new vehicle
+      }}>Add New Vehicle</Button>
       
       <VehicleGrid>
         {vehicles.map((vehicle) => (
           <VehicleCard key={vehicle.Nickname_ID}>
             <h3>{vehicle.Nickname}</h3>
             <p>{vehicle.Make} {vehicle.Model} ({vehicle.Year})</p>
+            <Button onClick={() => goToShocks(vehicle.Nickname_ID)}>View Shocks</Button> {/* Navigate to shocks */}
             <Button onClick={() => handleEdit(vehicle)}>Edit</Button>
             <Button onClick={() => handleDelete(vehicle.Nickname_ID)} style={{ backgroundColor: '#FF0000' }}>
               Delete
@@ -183,7 +181,7 @@ const VehicleManager: React.FC = () => {
       </VehicleGrid>
 
       {showForm && (
-        <FormModal>
+        <div>
           <h3>{editingId ? 'Edit Vehicle' : 'Add New Vehicle'}</h3>
           <form onSubmit={handleSave}>
             <Input
@@ -219,9 +217,11 @@ const VehicleManager: React.FC = () => {
               required
             />
             <Button type="submit">{editingId ? 'Update Vehicle' : 'Add Vehicle'}</Button>
-            <Button type="button" onClick={() => setShowForm(false)} style={{ backgroundColor: '#FF0000' }}>Cancel</Button>
+            <Button type="button" onClick={() => setShowForm(false)} style={{ backgroundColor: '#FF0000' }}>
+              Cancel
+            </Button>
           </form>
-        </FormModal>
+        </div>
       )}
     </Container>
   );
