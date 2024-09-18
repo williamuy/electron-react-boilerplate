@@ -12,9 +12,9 @@ import path from 'path';
 import { app, BrowserWindow, shell, ipcMain } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
+import sqlite3 from 'sqlite3';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
-import sqlite3 from 'sqlite3';
 
 class AppUpdater {
   constructor() {
@@ -57,7 +57,7 @@ const installExtensions = async () => {
     .catch(console.log);
 };
 
-//DATABASE PORTION
+// DATABASE PORTION
 
 // Open the database connection
 const dbPath = path.join(__dirname, 'test.db');
@@ -77,10 +77,22 @@ ipcMain.handle('insert-data', async (event, data) => {
   return new Promise((resolve, reject) => {
     const query = `INSERT INTO Vehicles (User_ID, Vehicle_Type_ID, Nickname_ID, Nickname, Make, Model, Year) 
                    VALUES (?, ?, ?, ?, ?, ?, ?)`;
-    db.run(query, [data.User_ID, data.Vehicle_Type_ID, data.Nickname_ID, data.Nickname, data.Make, data.Model, data.Year], (err) => {
-      if (err) reject(err);
-      else resolve('Vehicle data inserted successfully');
-    });
+    db.run(
+      query,
+      [
+        data.User_ID,
+        data.Vehicle_Type_ID,
+        data.Nickname_ID,
+        data.Nickname,
+        data.Make,
+        data.Model,
+        data.Year,
+      ],
+      (err) => {
+        if (err) reject(err);
+        else resolve('Vehicle data inserted successfully');
+      },
+    );
   });
 });
 
@@ -99,13 +111,24 @@ ipcMain.handle('update-data', async (event, data) => {
     const query = `UPDATE Vehicles 
                    SET User_ID = ?, Vehicle_Type_ID = ?, Nickname = ?, Make = ?, Model = ?, Year = ? 
                    WHERE Nickname_ID = ?`;
-    db.run(query, [data.User_ID, data.Vehicle_Type_ID, data.Nickname, data.Make, data.Model, data.Year, data.Nickname_ID], (err) => {
-      if (err) reject(err);
-      else resolve('Vehicle data updated successfully');
-    });
+    db.run(
+      query,
+      [
+        data.User_ID,
+        data.Vehicle_Type_ID,
+        data.Nickname,
+        data.Make,
+        data.Model,
+        data.Year,
+        data.Nickname_ID,
+      ],
+      (err) => {
+        if (err) reject(err);
+        else resolve('Vehicle data updated successfully');
+      },
+    );
   });
 });
-
 
 // Query all Shock Sets
 ipcMain.handle('query-shock-sets', async (event, query) => {
@@ -122,10 +145,19 @@ ipcMain.handle('insert-shock-set', async (event, data) => {
   return new Promise((resolve, reject) => {
     const query = `INSERT INTO Shocks_Set (Shock_Set_ID, User_ID, Vehicle_ID, Shock_Set_Nickname) 
                    VALUES (?, ?, ?, ?)`;
-    db.run(query, [data.Shock_Set_ID, data.User_ID, data.Vehicle_ID, data.Shock_Set_Nickname], (err) => {
-      if (err) reject(err);
-      else resolve('Shock Set inserted successfully');
-    });
+    db.run(
+      query,
+      [
+        data.Shock_Set_ID,
+        data.User_ID,
+        data.Vehicle_ID,
+        data.Shock_Set_Nickname,
+      ],
+      (err) => {
+        if (err) reject(err);
+        else resolve('Shock Set inserted successfully');
+      },
+    );
   });
 });
 
@@ -135,13 +167,21 @@ ipcMain.handle('update-shock-set', async (event, data) => {
     const query = `UPDATE Shocks_Set 
                    SET User_ID = ?, Vehicle_ID = ?, Shock_Set_Nickname = ? 
                    WHERE Shock_Set_ID = ?`;
-    db.run(query, [data.User_ID, data.Vehicle_ID, data.Shock_Set_Nickname, data.Shock_Set_ID], (err) => {
-      if (err) reject(err);
-      else resolve('Shock Set updated successfully');
-    });
+    db.run(
+      query,
+      [
+        data.User_ID,
+        data.Vehicle_ID,
+        data.Shock_Set_Nickname,
+        data.Shock_Set_ID,
+      ],
+      (err) => {
+        if (err) reject(err);
+        else resolve('Shock Set updated successfully');
+      },
+    );
   });
 });
-
 
 // Delete a Shock Set by ID
 ipcMain.handle('delete-shock-set', async (event, id) => {
@@ -154,16 +194,26 @@ ipcMain.handle('delete-shock-set', async (event, id) => {
   });
 });
 
-
 // Insert new Shock
 ipcMain.handle('insert-shock', async (event, data) => {
   return new Promise((resolve, reject) => {
     const query = `INSERT INTO Shocks (Shock_Set_ID, Shock_Brand, Shock_Name, Shock_Location, isAdjustable, Adjuster_Amount) 
                    VALUES (?, ?, ?, ?, ?, ?)`;
-    db.run(query, [data.Shock_Set_ID, data.Shock_Brand, data.Shock_Name, data.Shock_Location, data.isAdjustable, data.Adjuster_Amount], (err) => {
-      if (err) reject(err);
-      else resolve('Shock inserted successfully');
-    });
+    db.run(
+      query,
+      [
+        data.Shock_Set_ID,
+        data.Shock_Brand,
+        data.Shock_Name,
+        data.Shock_Location,
+        data.isAdjustable,
+        data.Adjuster_Amount,
+      ],
+      (err) => {
+        if (err) reject(err);
+        else resolve('Shock inserted successfully');
+      },
+    );
   });
 });
 
@@ -173,10 +223,21 @@ ipcMain.handle('update-shock', async (event, data) => {
     const query = `UPDATE Shocks 
                    SET Shock_Brand = ?, Shock_Name = ?, Shock_Location = ?, isAdjustable = ?, Adjuster_Amount = ? 
                    WHERE Shock_ID = ?`;
-    db.run(query, [data.Shock_Brand, data.Shock_Name, data.Shock_Location, data.isAdjustable, data.Adjuster_Amount, data.Shock_ID], (err) => {
-      if (err) reject(err);
-      else resolve('Shock updated successfully');
-    });
+    db.run(
+      query,
+      [
+        data.Shock_Brand,
+        data.Shock_Name,
+        data.Shock_Location,
+        data.isAdjustable,
+        data.Adjuster_Amount,
+        data.Shock_ID,
+      ],
+      (err) => {
+        if (err) reject(err);
+        else resolve('Shock updated successfully');
+      },
+    );
   });
 });
 
@@ -202,17 +263,27 @@ ipcMain.handle('query-shocks', async (event, shockSetId) => {
   });
 });
 
-//Adjusters
+// Adjusters
 
 // Insert a new Adjuster
 ipcMain.handle('insert-adjuster', async (event, data) => {
   return new Promise((resolve, reject) => {
     const query = `INSERT INTO Adjusters (Shock_ID, Adjuster_ID, Adjuster_Nickname, Adjuster_Type, Adjuster_Max) 
                    VALUES (?, ?, ?, ?, ?)`;
-    db.run(query, [data.Shock_ID, data.Adjuster_ID, data.Adjuster_Nickname, data.Adjuster_Type, data.Adjuster_Max], (err) => {
-      if (err) reject(err);
-      else resolve('Adjuster inserted successfully');
-    });
+    db.run(
+      query,
+      [
+        data.Shock_ID,
+        data.Adjuster_ID,
+        data.Adjuster_Nickname,
+        data.Adjuster_Type,
+        data.Adjuster_Max,
+      ],
+      (err) => {
+        if (err) reject(err);
+        else resolve('Adjuster inserted successfully');
+      },
+    );
   });
 });
 
@@ -236,10 +307,19 @@ ipcMain.handle('update-adjuster', async (event, data) => {
     const query = `UPDATE Adjusters 
                    SET Adjuster_Nickname = ?, Adjuster_Type = ?, Adjuster_Max = ? 
                    WHERE Adjuster_ID = ?`;
-    db.run(query, [data.Adjuster_Nickname, data.Adjuster_Type, data.Adjuster_Max, data.Adjuster_ID], (err) => {
-      if (err) reject(err);
-      else resolve('Adjuster updated successfully');
-    });
+    db.run(
+      query,
+      [
+        data.Adjuster_Nickname,
+        data.Adjuster_Type,
+        data.Adjuster_Max,
+        data.Adjuster_ID,
+      ],
+      (err) => {
+        if (err) reject(err);
+        else resolve('Adjuster updated successfully');
+      },
+    );
   });
 });
 
@@ -254,8 +334,7 @@ ipcMain.handle('delete-adjuster', async (event, id) => {
   });
 });
 
-
-//DATABASE PORTION END
+// DATABASE PORTION END
 
 const createWindow = async () => {
   if (isDebug) {
@@ -336,6 +415,3 @@ app
     });
   })
   .catch(console.log);
-
-
-  
