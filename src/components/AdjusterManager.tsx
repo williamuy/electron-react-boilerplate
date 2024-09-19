@@ -40,7 +40,7 @@ const AdjusterCard = styled.div`
 
 const Button = styled.button`
   padding: 0.5rem 1rem;
-  background-color: #4CAF50;
+  background-color: #4caf50;
   color: white;
   border: none;
   border-radius: 4px;
@@ -65,7 +65,7 @@ const FormModal = styled.div`
   background-color: white;
   padding: 2rem;
   border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   max-width: 400px;
   margin: 0 auto;
 `;
@@ -82,7 +82,10 @@ const AdjusterManager: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
 
   // Get both vehicleId and shockId from URL parameters
-  const { shockId, vehicleId } = useParams<{ shockId: string, vehicleId: string }>();  
+  const { shockId, vehicleId } = useParams<{
+    shockId: string;
+    vehicleId: string;
+  }>();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -91,7 +94,9 @@ const AdjusterManager: React.FC = () => {
 
   const fetchAdjusters = async () => {
     try {
-      const result = await window.electron.queryAdjusters(parseInt(shockId || '0'));  // Fetch adjusters for the shock
+      const result = await window.electron.queryAdjusters(
+        parseInt(shockId || '0'),
+      ); // Fetch adjusters for the shock
       setAdjusters(result);
     } catch (error) {
       console.error('Error fetching adjusters:', error);
@@ -99,36 +104,39 @@ const AdjusterManager: React.FC = () => {
   };
 
   const handleEdit = (adjuster: AdjusterData) => {
-    setEditingId(adjuster.Adjuster_ID);  // Set the ID of the adjuster being edited
-    setNewAdjuster(adjuster);  // Populate the form with the selected adjuster's data
-    setShowForm(true);  // Show the form for editing
+    setEditingId(adjuster.Adjuster_ID); // Set the ID of the adjuster being edited
+    setNewAdjuster(adjuster); // Populate the form with the selected adjuster's data
+    setShowForm(true); // Show the form for editing
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (editingId) {  // If editing an existing adjuster
+      if (editingId) {
+        // If editing an existing adjuster
         await window.electron.updateAdjuster({
           ...newAdjuster,
           Adjuster_ID: editingId,
           Shock_ID: parseInt(shockId || '0'),
         });
-      } else {  // If adding a new adjuster
+      } else {
+        // If adding a new adjuster
         const adjusterWithRandomId = {
           ...newAdjuster,
-          Adjuster_ID: Math.floor(Math.random() * 10000),  // Assign a random Adjuster ID for new adjusters
-          Shock_ID: parseInt(shockId || '0'),  // Link the adjuster to the selected shock
+          Adjuster_ID: Math.floor(Math.random() * 10000), // Assign a random Adjuster ID for new adjusters
+          Shock_ID: parseInt(shockId || '0'), // Link the adjuster to the selected shock
         };
         await window.electron.insertAdjuster(adjusterWithRandomId);
       }
-      setEditingId(null);  // Reset the editing ID
-      setNewAdjuster({  // Reset the form state
+      setEditingId(null); // Reset the editing ID
+      setNewAdjuster({
+        // Reset the form state
         Adjuster_Nickname: '',
         Adjuster_Type: '',
         Adjuster_Max: 0,
       });
-      setShowForm(false);  // Hide the form
-      fetchAdjusters();  // Refresh the adjusters list
+      setShowForm(false); // Hide the form
+      fetchAdjusters(); // Refresh the adjusters list
     } catch (error) {
       console.error('Error saving adjuster:', error);
     }
@@ -136,8 +144,8 @@ const AdjusterManager: React.FC = () => {
 
   const handleDelete = async (adjusterId: number) => {
     try {
-      await window.electron.deleteAdjuster(adjusterId);  // Delete the adjuster
-      fetchAdjusters();  // Refresh the adjusters list after deletion
+      await window.electron.deleteAdjuster(adjusterId); // Delete the adjuster
+      fetchAdjusters(); // Refresh the adjusters list after deletion
     } catch (error) {
       console.error('Error deleting adjuster:', error);
     }
@@ -147,19 +155,22 @@ const AdjusterManager: React.FC = () => {
     const { name, value } = e.target;
     setNewAdjuster((prev) => ({
       ...prev,
-      [name]: name === 'Adjuster_Max' ? parseInt(value) || 0 : value,  // Update the form state based on input changes
+      [name]: name === 'Adjuster_Max' ? parseInt(value) || 0 : value, // Update the form state based on input changes
     }));
   };
 
   // Ensure vehicleId and shockId are passed when navigating back
   const handleBackToShocks = () => {
-    navigate(`/vehicles/${vehicleId}/shocks`);  // Navigate back to shocks for the correct vehicleId
+    navigate(`/vehicles/${vehicleId}/shocks`); // Navigate back to shocks for the correct vehicleId
   };
 
   return (
     <Container>
       <Title>Manage Adjusters for Shock ID {shockId}</Title>
-      <Button onClick={handleBackToShocks} style={{ marginBottom: '1rem', backgroundColor: '#008CBA' }}>
+      <Button
+        onClick={handleBackToShocks}
+        style={{ marginBottom: '1rem', backgroundColor: '#008CBA' }}
+      >
         Back to Shocks
       </Button>
       <Button onClick={() => setShowForm(true)}>Add New Adjuster</Button>
@@ -171,7 +182,10 @@ const AdjusterManager: React.FC = () => {
             <p>Type: {adjuster.Adjuster_Type}</p>
             <p>Max: {adjuster.Adjuster_Max}</p>
             <Button onClick={() => handleEdit(adjuster)}>Edit</Button>
-            <Button onClick={() => handleDelete(adjuster.Adjuster_ID)} style={{ backgroundColor: '#FF0000' }}>
+            <Button
+              onClick={() => handleDelete(adjuster.Adjuster_ID)}
+              style={{ backgroundColor: '#FF0000' }}
+            >
               Delete
             </Button>
           </AdjusterCard>
@@ -206,8 +220,14 @@ const AdjusterManager: React.FC = () => {
               placeholder="Max Value"
               required
             />
-            <Button type="submit">{editingId ? 'Update Adjuster' : 'Add Adjuster'}</Button>
-            <Button type="button" onClick={() => setShowForm(false)} style={{ backgroundColor: '#FF0000' }}>
+            <Button type="submit">
+              {editingId ? 'Update Adjuster' : 'Add Adjuster'}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => setShowForm(false)}
+              style={{ backgroundColor: '#FF0000' }}
+            >
               Cancel
             </Button>
           </form>
