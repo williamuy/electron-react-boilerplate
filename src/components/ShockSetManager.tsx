@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
-// Define the Shock Set data structure
 interface ShockSetData {
   User_ID: number;
   Vehicle_ID: number;
@@ -10,233 +9,218 @@ interface ShockSetData {
   Shock_Set_Nickname: string;
 }
 
-// Styled components for the UI
 const Container = styled.div`
   padding: 2rem;
   max-width: 1200px;
   margin: 0 auto;
-  font-family: Arial, sans-serif;
+  font-family: 'Roboto', Arial, sans-serif;
 `;
 
 const Title = styled.h2`
-  font-size: 2rem;
+  font-size: 2.5rem;
+  color: #333;
+  margin-bottom: 2rem;
+  text-align: center;
+`;
+
+const Card = styled.div`
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1.5rem;
+`;
+
+const Button = styled.button`
+  padding: 0.75rem 1.25rem;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+  font-weight: bold;
+  margin-right: 0.75rem;
+
+  &:hover {
+    background-color: #45a049;
+    transform: translateY(-2px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+`;
+
+const Input = styled.input`
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  width: 100%;
+  font-size: 1rem;
+`;
+
+const FormContainer = styled(Card)`
+  margin-bottom: 2rem;
+`;
+
+const FormTitle = styled.h3`
+  font-size: 1.5rem;
   color: #333;
   margin-bottom: 1.5rem;
 `;
 
-const Form = styled.form`
+const ShockSetGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 2rem;
-  background-color: #f5f5f5;
-  padding: 1.5rem;
-  border-radius: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
 `;
 
-const Input = styled.input`
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-`;
-
-const Button = styled.button`
-  padding: 0.5rem 1rem;
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.3s;
+const ShockSetCard = styled(Card)`
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 
   &:hover {
-    background-color: #45a049;
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
   }
 `;
 
-const Table = styled.table`
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  background-color: white;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-  border-radius: 8px;
-  overflow: hidden;
+const ShockSetInfo = styled.p`
+  font-size: 1.1rem;
+  color: #555;
+  margin-bottom: 1rem;
 `;
 
-const Th = styled.th`
-  background-color: #f2f2f2;
-  color: #333;
-  font-weight: bold;
-  padding: 1rem;
-  text-align: left;
+const ButtonGroup = styled.div`
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 1rem;
 `;
 
-const Td = styled.td`
-  padding: 1rem;
-  border-top: 1px solid #ddd;
-`;
-
-const ActionButton = styled(Button)`
-  margin-right: 0.5rem;
-`;
-
-// Main component for managing Shock Sets
 const ShockSetManager: React.FC = () => {
   const [shockSets, setShockSets] = useState<ShockSetData[]>([]);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [newShockSet, setNewShockSet] = useState<ShockSetData>({
-    User_ID: 0,
+    User_ID: 1,
     Vehicle_ID: 0,
-    Shock_Set_ID: 0, // Initialize Shock Set ID
+    Shock_Set_ID: 0,
     Shock_Set_Nickname: '',
   });
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const { vehicleId } = useParams<{ vehicleId: string }>();
   const navigate = useNavigate();
 
-  // Fetch all Shock Sets from the database
-  const fetchData = async () => {
+  useEffect(() => {
+    fetchShockSets();
+  }, [vehicleId]);
+
+  const fetchShockSets = async () => {
     try {
-      const result = await window.electron.queryDatabase('SELECT * FROM Shocks_Set');
+      const result = await window.electron.queryDatabase(`SELECT * FROM Shocks_Set WHERE Vehicle_ID = ${vehicleId}`);
       setShockSets(result);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error fetching shock sets:', error);
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingId) {
+        await window.electron.updateShockSet(newShockSet);
+      } else {
+        const shockSetWithId = {
+          ...newShockSet,
+          Shock_Set_ID: Math.floor(Math.random() * 10000) + 1,
+          Vehicle_ID: parseInt(vehicleId || '0'),
+        };
+        await window.electron.insertShockSet(shockSetWithId);
+      }
+      resetForm();
+      fetchShockSets();
+    } catch (error) {
+      console.error('Error saving shock set:', error);
+    }
+  };
 
-  // Handle input changes for the form
+  const handleEdit = (shockSet: ShockSetData) => {
+    setEditingId(shockSet.Shock_Set_ID);
+    setNewShockSet(shockSet);
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      await window.electron.deleteShockSet(id);
+      fetchShockSets();
+    } catch (error) {
+      console.error('Error deleting shock set:', error);
+    }
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setNewShockSet((prev) => ({
       ...prev,
-      [name]: name === 'User_ID' || name === 'Vehicle_ID' || name === 'Shock_Set_ID'
-        ? parseInt(value) || 0
-        : value,
+      [name]: value,
     }));
   };
 
-  // Handle form submission (Insert or Update)
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      if (editingId !== null) {
-        await window.electron.updateShockSet(newShockSet); // Use update for editing
-        setEditingId(null);
-      } else {
-        await window.electron.insertShockSet(newShockSet); // Use insert for new entries
-      }
-      // Clear the form after submission
-      setNewShockSet({
-        User_ID: 0,
-        Vehicle_ID: 0,
-        Shock_Set_ID: 0, // Reset Shock Set ID
-        Shock_Set_Nickname: '',
-      });
-      fetchData(); // Refresh the data
-    } catch (error) {
-      console.error('Error saving data:', error);
-    }
+  const resetForm = () => {
+    setEditingId(null);
+    setNewShockSet({
+      User_ID: 1,
+      Vehicle_ID: 0,
+      Shock_Set_ID: 0,
+      Shock_Set_Nickname: '',
+    });
   };
 
-  // Handle deletion of a Shock Set
-  const handleDelete = async (id: number) => {
-    try {
-      await window.electron.deleteShockSet(id);
-      fetchData(); // Refresh the data after deletion
-    } catch (error) {
-      console.error('Error deleting data:', error);
-    }
+  const goToShocks = (shockSetId: number) => {
+    navigate(`/shock-sets/${shockSetId}/shocks`);
   };
 
-  // Handle editing of a Shock Set
-  const handleEdit = (shockSet: ShockSetData) => {
-    setNewShockSet(shockSet);
-    setEditingId(shockSet.Shock_Set_ID);
-  };
-
-  // Navigate back to the previous page
   const handleBack = () => {
-    navigate(-1); // Navigates back to the previous page
+    navigate('/vehicles');
   };
 
   return (
     <Container>
-      <Title>Manage Shock Sets</Title>
-      <Button onClick={handleBack} style={{ marginBottom: '1rem', backgroundColor: '#008CBA' }}>
-        Back
-      </Button>
+      <Button onClick={handleBack} style={{ marginBottom: '1rem' }}>Back to Vehicles</Button>
+      <Title>Manage Shock Sets for Vehicle {vehicleId}</Title>
 
-      <Form onSubmit={handleSubmit}>
-        <Input
-          type="number"
-          name="Shock_Set_ID"
-          value={newShockSet.Shock_Set_ID}
-          onChange={handleInputChange}
-          placeholder="Shock Set ID"
-          required
-        />
-        <Input
-          type="number"
-          name="User_ID"
-          value={newShockSet.User_ID}
-          onChange={handleInputChange}
-          placeholder="User ID"
-          required
-        />
-        <Input
-          type="number"
-          name="Vehicle_ID"
-          value={newShockSet.Vehicle_ID}
-          onChange={handleInputChange}
-          placeholder="Vehicle ID"
-          required
-        />
-        <Input
-          type="text"
-          name="Shock_Set_Nickname"
-          value={newShockSet.Shock_Set_Nickname}
-          onChange={handleInputChange}
-          placeholder="Nickname"
-          required
-        />
-        <Button type="submit">
-          {editingId !== null ? 'Update Shock Set' : 'Add Shock Set'}
-        </Button>
-      </Form>
+      <FormContainer>
+        <FormTitle>{editingId ? 'Edit Shock Set' : 'Add New Shock Set'}</FormTitle>
+        <form onSubmit={handleSave}>
+          <Input
+            type="text"
+            name="Shock_Set_Nickname"
+            value={newShockSet.Shock_Set_Nickname}
+            onChange={handleInputChange}
+            placeholder="Shock Set Nickname"
+            required
+          />
+          <Button type="submit">{editingId ? 'Update Shock Set' : 'Add Shock Set'}</Button>
+          <Button type="button" onClick={resetForm} style={{ backgroundColor: '#FF5722' }}>
+            Cancel
+          </Button>
+        </form>
+      </FormContainer>
 
-      <Table>
-        <thead>
-          <tr>
-            <Th>Shock Set ID</Th>
-            <Th>User ID</Th>
-            <Th>Vehicle ID</Th>
-            <Th>Nickname</Th>
-            <Th>Actions</Th>
-          </tr>
-        </thead>
-        <tbody>
-          {shockSets.map((shockSet) => (
-            <tr key={shockSet.Shock_Set_ID}>
-              <Td>{shockSet.Shock_Set_ID}</Td>
-              <Td>{shockSet.User_ID}</Td>
-              <Td>{shockSet.Vehicle_ID}</Td>
-              <Td>{shockSet.Shock_Set_Nickname}</Td>
-              <Td>
-                <ActionButton onClick={() => handleEdit(shockSet)} style={{ backgroundColor: '#4CAF50' }}>
-                  Edit
-                </ActionButton>
-                <ActionButton onClick={() => handleDelete(shockSet.Shock_Set_ID)} style={{ backgroundColor: '#FF0000' }}>
-                  Delete
-                </ActionButton>
-              </Td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
+      <ShockSetGrid>
+        {shockSets.map((shockSet) => (
+          <ShockSetCard key={shockSet.Shock_Set_ID}>
+            <ShockSetInfo><strong>ID:</strong> {shockSet.Shock_Set_ID}</ShockSetInfo>
+            <ShockSetInfo><strong>Nickname:</strong> {shockSet.Shock_Set_Nickname}</ShockSetInfo>
+            <ButtonGroup>
+              <Button onClick={() => goToShocks(shockSet.Shock_Set_ID)}>View Shocks</Button>
+              <Button onClick={() => handleEdit(shockSet)} style={{ backgroundColor: '#2196F3' }}>Edit</Button>
+              <Button onClick={() => handleDelete(shockSet.Shock_Set_ID)} style={{ backgroundColor: '#FF5722' }}>
+                Delete
+              </Button>
+            </ButtonGroup>
+          </ShockSetCard>
+        ))}
+      </ShockSetGrid>
     </Container>
   );
 };

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 
-// Define the Vehicle data structure
 interface VehicleData {
   User_ID: number;
   Vehicle_Type_ID: number;
@@ -17,49 +16,84 @@ const Container = styled.div`
   padding: 2rem;
   max-width: 1200px;
   margin: 0 auto;
-  font-family: Arial, sans-serif;
+  font-family: 'Roboto', Arial, sans-serif;
 `;
 
 const Title = styled.h2`
-  font-size: 2rem;
+  font-size: 2.5rem;
   color: #333;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
+  text-align: center;
 `;
 
 const VehicleGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
 `;
 
 const VehicleCard = styled.div`
-  background-color: #f5f5f5;
-  border-radius: 8px;
-  padding: 1rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  }
 `;
 
 const Button = styled.button`
-  padding: 0.5rem 1rem;
+  padding: 0.75rem 1.25rem;
   background-color: #4CAF50;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.3s;
-  margin-right: 0.5rem;
+  transition: background-color 0.3s, transform 0.2s;
+  font-weight: bold;
+  margin-right: 0.75rem;
+  margin-top: 1rem;
 
   &:hover {
     background-color: #45a049;
+    transform: translateY(-2px);
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 `;
 
 const Input = styled.input`
-  padding: 0.5rem;
+  padding: 0.75rem;
   border: 1px solid #ccc;
-  border-radius: 4px;
+  border-radius: 6px;
   margin-bottom: 1rem;
   width: 100%;
+  font-size: 1rem;
+`;
+
+const FormContainer = styled.div`
+  background-color: #f9f9f9;
+  padding: 2rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+`;
+
+const FormTitle = styled.h3`
+  font-size: 1.5rem;
+  color: #333;
+  margin-bottom: 1.5rem;
+`;
+
+const VehicleInfo = styled.p`
+  font-size: 1.1rem;
+  color: #555;
+  margin-bottom: 0.5rem;
 `;
 
 const VehicleManager: React.FC = () => {
@@ -74,7 +108,6 @@ const VehicleManager: React.FC = () => {
     Model: '',
     Year: 0,
   });
-  const [showForm, setShowForm] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -90,16 +123,6 @@ const VehicleManager: React.FC = () => {
     }
   };
 
-  const generateRandomId = () => {
-    return Math.floor(Math.random() * 10000) + 1;
-  };
-
-  const handleEdit = (vehicle: VehicleData) => {
-    setEditingId(vehicle.Nickname_ID);
-    setNewVehicle(vehicle);
-    setShowForm(true);  // Show form when editing
-  };
-
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -108,26 +131,21 @@ const VehicleManager: React.FC = () => {
       } else {
         const vehicleWithRandomIds = {
           ...newVehicle,
-          Nickname_ID: generateRandomId(),
-          Vehicle_Type_ID: generateRandomId(),
+          Nickname_ID: Math.floor(Math.random() * 10000) + 1,
+          Vehicle_Type_ID: Math.floor(Math.random() * 10000) + 1,
         };
         await window.electron.insertData(vehicleWithRandomIds);
       }
-      setEditingId(null);
-      setNewVehicle({
-        User_ID: 1,
-        Vehicle_Type_ID: 0,
-        Nickname_ID: 0,
-        Nickname: '',
-        Make: '',
-        Model: '',
-        Year: 0,
-      });
-      setShowForm(false);
+      resetForm();
       fetchVehicles();
     } catch (error) {
       console.error('Error saving vehicle:', error);
     }
+  };
+
+  const handleEdit = (vehicle: VehicleData) => {
+    setEditingId(vehicle.Nickname_ID);
+    setNewVehicle(vehicle);
   };
 
   const handleDelete = async (id: number) => {
@@ -147,82 +165,88 @@ const VehicleManager: React.FC = () => {
     }));
   };
 
-  const handleBack = () => {
-    navigate(-1); // Navigates back to the previous page
+  const resetForm = () => {
+    setEditingId(null);
+    setNewVehicle({
+      User_ID: 1,
+      Vehicle_Type_ID: 0,
+      Nickname_ID: 0,
+      Nickname: '',
+      Make: '',
+      Model: '',
+      Year: 0,
+    });
   };
 
-  const goToShocks = (vehicleId: number) => {
-    navigate(`/vehicles/${vehicleId}/shocks`); // Navigate to the shocks for this vehicle
+  const goToShockSets = (vehicleId: number) => {
+    navigate(`/vehicles/${vehicleId}/shock-sets`);
+  };
+
+  const handleBack = () => {
+    navigate('/');
   };
 
   return (
     <Container>
-      <Title>Your Vehicles</Title>
-      <Button onClick={handleBack} style={{ marginBottom: '1rem', backgroundColor: '#008CBA' }}>
-        Back
-      </Button>
-      <Button onClick={() => {
-        setShowForm(true);
-        setEditingId(null); // Ensure you're adding a new vehicle
-      }}>Add New Vehicle</Button>
-      
+      <Button onClick={handleBack} style={{ marginBottom: '1rem' }}>Back to Home</Button>
+      <Title>Manage Your Vehicles</Title>
+
+      <FormContainer>
+        <FormTitle>{editingId ? 'Edit Vehicle' : 'Add New Vehicle'}</FormTitle>
+        <form onSubmit={handleSave}>
+          <Input
+            type="text"
+            name="Nickname"
+            value={newVehicle.Nickname}
+            onChange={handleInputChange}
+            placeholder="Nickname"
+            required
+          />
+          <Input
+            type="text"
+            name="Make"
+            value={newVehicle.Make}
+            onChange={handleInputChange}
+            placeholder="Make"
+            required
+          />
+          <Input
+            type="text"
+            name="Model"
+            value={newVehicle.Model}
+            onChange={handleInputChange}
+            placeholder="Model"
+            required
+          />
+          <Input
+            type="number"
+            name="Year"
+            value={newVehicle.Year}
+            onChange={handleInputChange}
+            placeholder="Year"
+            required
+          />
+          <Button type="submit">{editingId ? 'Update Vehicle' : 'Add Vehicle'}</Button>
+          <Button type="button" onClick={resetForm} style={{ backgroundColor: '#FF5722' }}>
+            Cancel
+          </Button>
+        </form>
+      </FormContainer>
+
       <VehicleGrid>
         {vehicles.map((vehicle) => (
           <VehicleCard key={vehicle.Nickname_ID}>
             <h3>{vehicle.Nickname}</h3>
-            <p>{vehicle.Make} {vehicle.Model} ({vehicle.Year})</p>
-            <Button onClick={() => goToShocks(vehicle.Nickname_ID)}>View Shocks</Button> {/* Navigate to shocks */}
-            <Button onClick={() => handleEdit(vehicle)}>Edit</Button>
-            <Button onClick={() => handleDelete(vehicle.Nickname_ID)} style={{ backgroundColor: '#FF0000' }}>
+            <VehicleInfo>{vehicle.Make} {vehicle.Model}</VehicleInfo>
+            <VehicleInfo>{vehicle.Year}</VehicleInfo>
+            <Button onClick={() => goToShockSets(vehicle.Nickname_ID)}>Manage Shock Sets</Button>
+            <Button onClick={() => handleEdit(vehicle)} style={{ backgroundColor: '#2196F3' }}>Edit</Button>
+            <Button onClick={() => handleDelete(vehicle.Nickname_ID)} style={{ backgroundColor: '#FF5722' }}>
               Delete
             </Button>
           </VehicleCard>
         ))}
       </VehicleGrid>
-
-      {showForm && (
-        <div>
-          <h3>{editingId ? 'Edit Vehicle' : 'Add New Vehicle'}</h3>
-          <form onSubmit={handleSave}>
-            <Input
-              type="text"
-              name="Nickname"
-              value={newVehicle.Nickname}
-              onChange={handleInputChange}
-              placeholder="Nickname"
-              required
-            />
-            <Input
-              type="text"
-              name="Make"
-              value={newVehicle.Make}
-              onChange={handleInputChange}
-              placeholder="Make"
-              required
-            />
-            <Input
-              type="text"
-              name="Model"
-              value={newVehicle.Model}
-              onChange={handleInputChange}
-              placeholder="Model"
-              required
-            />
-            <Input
-              type="number"
-              name="Year"
-              value={newVehicle.Year}
-              onChange={handleInputChange}
-              placeholder="Year"
-              required
-            />
-            <Button type="submit">{editingId ? 'Update Vehicle' : 'Add Vehicle'}</Button>
-            <Button type="button" onClick={() => setShowForm(false)} style={{ backgroundColor: '#FF0000' }}>
-              Cancel
-            </Button>
-          </form>
-        </div>
-      )}
     </Container>
   );
 };

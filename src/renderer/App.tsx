@@ -2,10 +2,14 @@ import React from 'react';
 import { HashRouter as Router, Route, Routes, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import VehicleManager from '../components/VehicleManager';
-import DatabaseViewer from '../components/DatabaseViewer';
 import ShockSetManager from '../components/ShockSetManager';
 import ShockManager from '../components/ShockManager';
 import AdjusterManager from '../components/AdjusterManager';
+import VehicleSelector from '../components/Selectors/VehicleSelector';
+import ShockSetSelector from '../components/Selectors/ShockSetSelector';
+import ShockSelector from '../components/Selectors/ShockSelector';
+import ShockTestInitiator from '../components/Selectors/ShockTestInitiator';
+
 
 const MainContainer = styled.div`
   padding: 2rem;
@@ -63,21 +67,22 @@ const App: React.FC = () => {
               <Title>Welcome to Muggs Demo</Title>
               <ButtonContainer>
                 <MainButton to="/vehicles">Manage Vehicles</MainButton>
-                <MainButton to="/database-viewer">View Database</MainButton>
-                <MainButton to="/shock-sets">Manage Shock Sets</MainButton>
-                <MainButton to="/shocks">Manage Shocks</MainButton>
-                <MainButton to="/adjusters">Manage Adjusters</MainButton>
+                <MainButton to="/select-vehicle">Select Shock for Testing</MainButton>
               </ButtonContainer>
             </MainContainer>
           }
         />
+        
         <Route path="/vehicles" element={<VehicleManager />} />
-        <Route path="/database-viewer" element={<DatabaseViewer />} />
-        <Route path="/shock-sets" element={<ShockSetManager />} />
-        <Route path="/shocks" element={<ShockManager />} />
-        <Route path="/adjusters" element={<AdjusterManager />} />
+        <Route path="/vehicles/:vehicleId/shock-sets" element={<ShockSetManager />} />
+        <Route path="/shock-sets/:shockSetId/shocks" element={<ShockManager />} />
         <Route path="/shocks/:shockId/adjusters" element={<AdjusterManager />} />
-        <Route path="/vehicles/:vehicleId/shocks" element={<ShockManager />} />
+        
+        {/* New routes for shock selection process */}
+        <Route path="/select-vehicle" element={<VehicleSelector />} />
+        <Route path="/select-shock-set/:vehicleId" element={<ShockSetSelector />} />
+        <Route path="/select-shock/:shockSetId" element={<ShockSelector />} />
+        <Route path="/initiate-test/:shockId" element={<ShockTestInitiator />} />
       </Routes>
     </Router>
   );

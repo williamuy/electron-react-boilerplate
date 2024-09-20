@@ -336,6 +336,12 @@ ipcMain.handle('delete-adjuster', async (event, id) => {
 
 // DATABASE PORTION END
 
+
+/** Hardware Portion */
+
+
+
+
 const createWindow = async () => {
   if (isDebug) {
     await installExtensions();
