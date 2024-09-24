@@ -4,6 +4,14 @@ import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 
 export type Channels = 'ipc-example' | 'query-database';
 
+
+export type HardwareInfo = {
+  serialNumber: string;
+  ex1Enabled: boolean;
+  ex2Enabled: boolean;
+};
+
+
 const electronHandler = {
   ipcRenderer: {
     sendMessage(channel: Channels, ...args: unknown[]) {
@@ -42,6 +50,9 @@ const electronHandler = {
   insertAdjuster: (data: any) => ipcRenderer.invoke('insert-adjuster', data),
   updateAdjuster: (data: any) => ipcRenderer.invoke('update-adjuster', data),
   deleteAdjuster: (id: number) => ipcRenderer.invoke('delete-adjuster', id),
+
+  startShockTest: (portName: string): Promise<HardwareInfo> =>
+    ipcRenderer.invoke('start-shock-test', portName),
 };
 
 contextBridge.exposeInMainWorld('electron', electronHandler);

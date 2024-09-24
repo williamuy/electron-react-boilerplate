@@ -339,6 +339,132 @@ ipcMain.handle('delete-adjuster', async (event, id) => {
 
 /** Hardware Portion */
 
+import { SerialPort } from 'serialport';
+import * as crypto from 'crypto';
+
+const AES_KEY = Buffer.from('bf8768f5dd65d04b67f188aa3633d6d4', 'hex');
+const EOM_SEQUENCE = 0x0A0A0A0A;
+const DYNO_SEND_MSG_REQ_HW_INFO = 0x0E;
+const DYNO_RECV_MSG_HW_INFO = 0x08;
+
+// Helper function to construct a packet
+function constructPacket(pktType: number, data: Buffer = Buffer.alloc(0)): Buffer {
+  let fullLen = data.length + 8;
+  if (fullLen % 16 !== 0) {
+    fullLen += 16 - (fullLen % 16);
+  }
+
+  const toSend = Buffer.alloc(fullLen);
+  toSend.writeUInt16LE(fullLen, 0);
+  toSend.writeUInt16LE(pktType, 2);
+
+  if (data.length > 0) {
+    data.copy(toSend, 4);
+  }
+
+  toSend.writeUInt32LE(EOM_SEQUENCE, fullLen - 4);
+  return toSend;
+}
+
+// Function to encrypt data
+function encryptData(data: Buffer): Buffer {
+  const cipher = crypto.createCipheriv('aes-128-ecb', AES_KEY, null);
+  cipher.setAutoPadding(false);
+  return Buffer.concat([cipher.update(data), cipher.final()]);
+}
+
+// Function to decrypt data
+function decryptData(data: Buffer): Buffer {
+  const decipher = crypto.createDecipheriv('aes-128-ecb', AES_KEY, null);
+  decipher.setAutoPadding(false);
+  return Buffer.concat([decipher.update(data), decipher.final()]);
+}
+
+// Function to handle hardware info response
+function handleHWInfoResponse(response: Buffer): any {
+  // Implement your parsing logic here based on the provided structure
+  console.log('Raw decrypted data:', response);
+  if (response.length < 16) {
+    console.log('Invalid data packet length');
+    return null;
+  }
+
+  const pktLen = response.readUInt16LE(0);
+  const pktType = response.readUInt16LE(2);
+  const pktEom = response.readUInt32LE(pktLen - 4);
+
+  if (pktEom !== EOM_SEQUENCE) {
+    console.log('EOM sequence not matching... Skipping');
+    return null;
+  }
+
+  if (pktType === DYNO_RECV_MSG_HW_INFO && response.length >= 18) {
+    const serialNumber = response.slice(0, 16).toString('utf8').replace(/\0+$/, '');
+    const ex1Enabled = response.readUInt8(16) !== 0;
+    const ex2Enabled = response.readUInt8(17) !== 0;
+    console.log('Hardware Info:', { serialNumber, ex1Enabled, ex2Enabled });
+    return { serialNumber, ex1Enabled, ex2Enabled };
+  } else {
+    console.log('Unexpected response type:', pktType);
+    return null;
+  }
+}
+
+// Function to request hardware info from the port
+function requestHWInfo(port: SerialPort): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const packet = constructPacket(DYNO_SEND_MSG_REQ_HW_INFO);
+    const encryptedPacket = encryptData(packet);
+
+    const timeout = setTimeout(() => {
+      reject(new Error('Timeout waiting for HW info response'));
+    }, 5000); // 5 second timeout
+
+    const onData = (data: Buffer) => {
+      clearTimeout(timeout);
+      try {
+        const decryptedResponse = decryptData(data);
+        const response = handleHWInfoResponse(decryptedResponse);
+        if (response) {
+          resolve(response);
+        } else {
+          reject(new Error('Invalid HW info response'));
+        }
+      } catch (err) {
+        reject(new Error(`Decryption error: ${(err as Error).message}`));
+      }
+    };
+
+    port.once('data', onData);
+
+    port.write(encryptedPacket, (err) => {
+      if (err) {
+        clearTimeout(timeout);
+        port.removeListener('data', onData);
+        reject(new Error(`Error sending HW info request: ${err.message}`));
+      } else {
+        console.log('HW info request sent');
+      }
+    });
+  });
+}
+
+ipcMain.handle('start-shock-test', async (event, portName: string) => {
+  const port = new SerialPort({ path: portName, baudRate: 9600 });
+  try {
+    await new Promise((resolve) => port.on('open', resolve));
+    const hwInfo = await requestHWInfo(port); // Ensure you have the function requestHWInfo defined
+    return hwInfo;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(error.message);
+    } else {
+      throw new Error(String(error));
+    }
+  } finally {
+    port.close();
+  }
+});
 
 
 

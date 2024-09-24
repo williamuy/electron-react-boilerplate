@@ -1,38 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
-import { useParams } from 'react-router-dom';
+import { HardwareInfo } from '../../main/preload'; // Import the HardwareInfo type
 
 const Container = styled.div`
   padding: 2rem;
-  max-width: 800px;
+  max-width: 1200px;
   margin: 0 auto;
-`;
-
-const Title = styled.h2`
-  font-size: 2.5rem;
-  color: #333;
-  margin-bottom: 2rem;
   text-align: center;
 `;
 
-const ShockDetails = styled.div`
-  background-color: #ffffff;
-  border-radius: 12px;
-  padding: 2rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  margin-bottom: 2rem;
-`;
-
-const AdjusterList = styled.ul`
-  list-style-type: none;
-  padding: 0;
-`;
-
-const AdjusterItem = styled.li`
-  margin-bottom: 1rem;
-`;
-
-const StartTestButton = styled.button`
+const Button = styled.button`
   padding: 1rem 2rem;
   background-color: #4CAF50;
   color: white;
@@ -41,67 +18,56 @@ const StartTestButton = styled.button`
   font-size: 1.2rem;
   font-weight: bold;
   cursor: pointer;
-  transition: all 0.3s ease;
-  
+
   &:hover {
     background-color: #45a049;
   }
 `;
 
+const HWInfoDisplay = styled.div`
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background-color: #f4f4f4;
+  border-radius: 8px;
+  font-family: Arial, sans-serif;
+`;
+
 const ShockTestInitiator: React.FC = () => {
-  const [shock, setShock] = useState<any>(null);
-  const [adjusters, setAdjusters] = useState<any[]>([]);
-  const { shockId } = useParams<{ shockId: string }>();
+  const [hwInfo, setHWInfo] = useState<HardwareInfo | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchShockDetails();
-    fetchAdjusters();
-  }, [shockId]);
+  const handleStartTest = async () => {
+    setLoading(true);
+    setError(null);
 
-  const fetchShockDetails = async () => {
     try {
-      const result = await window.electron.queryDatabase(`SELECT * FROM Shocks WHERE Shock_ID = ${shockId}`);
-      setShock(result[0]);
-    } catch (error) {
-      console.error('Error fetching shock details:', error);
+      const result = await window.electron.startShockTest('COM3');  // Adjust portName as needed
+      setHWInfo(result);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
-
-  const fetchAdjusters = async () => {
-    try {
-      const result = await window.electron.queryDatabase(`SELECT * FROM Adjusters WHERE Shock_ID = ${shockId}`);
-      setAdjusters(result);
-    } catch (error) {
-      console.error('Error fetching adjusters:', error);
-    }
-  };
-
-  const handleStartTest = () => {
-    // Implement the logic to start the shock test
-    console.log('Starting shock test for shock ID:', shockId);
-  };
-
-  if (!shock) {
-    return <div>Loading...</div>;
-  }
 
   return (
     <Container>
-      <Title>{shock.Shock_Name}</Title>
-      <ShockDetails>
-        <h3>Shock Details</h3>
-        <p><strong>Brand:</strong> {shock.Shock_Brand}</p>
-        <p><strong>Location:</strong> {shock.Shock_Location}</p>
-        <h3>Adjusters</h3>
-        <AdjusterList>
-          {adjusters.map((adjuster) => (
-            <AdjusterItem key={adjuster.Adjuster_ID}>
-              <strong>{adjuster.Adjuster_Nickname}:</strong> {adjuster.Adjuster_Type} (0-{adjuster.Adjuster_Max})
-            </AdjusterItem>
-          ))}
-        </AdjusterList>
-      </ShockDetails>
-      <StartTestButton onClick={handleStartTest}>Start Shock Test</StartTestButton>
+      <h2>Shock Test Initiator</h2>
+      <Button onClick={handleStartTest} disabled={loading}>
+        {loading ? 'Requesting...' : 'Start Shock Test'}
+      </Button>
+
+      {error && <p style={{ color: 'red' }}>Error: {error}</p>}
+
+      {hwInfo && (
+        <HWInfoDisplay>
+          <h3>Hardware Info:</h3>
+          <p><strong>Serial Number:</strong> {hwInfo.serialNumber}</p>
+          <p><strong>EX1 Enabled:</strong> {hwInfo.ex1Enabled ? 'Yes' : 'No'}</p>
+          <p><strong>EX2 Enabled:</strong> {hwInfo.ex2Enabled ? 'Yes' : 'No'}</p>
+        </HWInfoDisplay>
+      )}
     </Container>
   );
 };
