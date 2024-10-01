@@ -50,9 +50,6 @@ const electronHandler = {
   insertAdjuster: (data: any) => ipcRenderer.invoke('insert-adjuster', data),
   updateAdjuster: (data: any) => ipcRenderer.invoke('update-adjuster', data),
   deleteAdjuster: (id: number) => ipcRenderer.invoke('delete-adjuster', id),
-
-  startShockTest: (portName: string): Promise<HardwareInfo> =>
-    ipcRenderer.invoke('start-shock-test', portName),
 };
 
 contextBridge.exposeInMainWorld('electron', electronHandler);

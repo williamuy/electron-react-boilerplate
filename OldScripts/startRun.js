@@ -42,7 +42,6 @@ function decryptData(data) {
 
 // Function to parse data response
 function parseDataResponse(data) {
-  console.log('Raw decrypted data:', data);
   if (data.length < 16) {
     console.log('Invalid data packet length');
     return null;
@@ -65,14 +64,27 @@ function handleResponse(response) {
   const parsed = parseDataResponse(response);
   if (!parsed) return null;
 
-  const { pktType } = parsed;
+  const { pktType, data } = parsed;
+  
   switch (pktType) {
+    case 0x05: // Data packet
+      const force = data.readFloatLE(0);
+      const position = data.readFloatLE(4);
+      const velocity = data.readFloatLE(8);
+      const timestamp = data.readUInt32LE(12);
+      const extra1 = data.readFloatLE(16);
+      const extra2 = data.readFloatLE(20);
+
+      console.log(`Force: ${force}, Position: ${position}, Velocity: ${velocity}, Timestamp: ${timestamp}, Extra1: ${extra1}, Extra2: ${extra2}`);
+      break;
+
     case DYNO_RECV_MSG_ACK_START_RUN:
       console.log('Start run request acknowledged');
-      return { type: 'ack_start_run' };
+      break;
+
     default:
       console.log('Unexpected response type:', pktType);
-      return null;
+      break;
   }
 }
 
@@ -80,41 +92,32 @@ function createPort(portName) {
   return new SerialPort({ path: portName, baudRate: 9600 });
 }
 
+// Function to send the start run request
 function requestStartRun(port) {
   return new Promise((resolve, reject) => {
     const packet = constructPacket(DYNO_SEND_MSG_REQ_START_RUN);
     const encryptedPacket = encryptData(packet);
 
-    const timeout = setTimeout(() => {
-      reject(new Error('Timeout waiting for start run request response'));
-    }, 5000); // 5 second timeout
-
-    function onData(data) {
-      clearTimeout(timeout);
-      try {
-        const decryptedResponse = decryptData(data);
-        const response = handleResponse(decryptedResponse);
-        if (response) {
-          resolve(response);
-        } else {
-          reject(new Error('Invalid start run request response'));
-        }
-      } catch (err) {
-        reject(new Error(`Decryption error: ${err.message}`));
-      }
-    }
-
-    port.once('data', onData);
-
     port.write(encryptedPacket, (err) => {
       if (err) {
-        clearTimeout(timeout);
-        port.removeListener('data', onData);
         reject(new Error(`Error sending start run request: ${err.message}`));
       } else {
         console.log('Start run request sent');
+        resolve();
       }
     });
+  });
+}
+
+// Function to start streaming data from the MCU
+function startDataStream(port) {
+  port.on('data', (data) => {
+    try {
+      const decryptedResponse = decryptData(data);
+      handleResponse(decryptedResponse);
+    } catch (err) {
+      console.error(`Error handling response: ${err.message}`);
+    }
   });
 }
 
@@ -128,18 +131,12 @@ async function main() {
     console.log('Port opened');
 
     console.log('Requesting start of run...');
-    const result = await requestStartRun(port);
-    console.log('Start run request result:', result);
+    await requestStartRun(port);
+
+    console.log('Streaming data...');
+    startDataStream(port);
   } catch (error) {
     console.error('Error:', error.message);
-  } finally {
-    port.close((err) => {
-      if (err) {
-        console.error('Error closing port:', err.message);
-      } else {
-        console.log('Port closed');
-      }
-    });
   }
 }
 
