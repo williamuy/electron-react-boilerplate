@@ -94,29 +94,41 @@ function requestHWInfo(port) {
 
     const timeout = setTimeout(() => {
       reject(new Error('Timeout waiting for HW info response'));
+      port.close();  // Ensure port is closed on timeout
     }, 5000); // 5 second timeout
 
+    let buffer = Buffer.alloc(0); // Buffer for accumulating data
+
     function onData(data) {
-      clearTimeout(timeout);
+      buffer = Buffer.concat([buffer, data]);
+      
       try {
-        const decryptedResponse = decryptData(data);
+        const decryptedResponse = decryptData(buffer);
         const response = handleHWInfoResponse(decryptedResponse);
         if (response) {
+          clearTimeout(timeout);
           resolve(response);
-        } else {
-          reject(new Error('Invalid HW info response'));
         }
       } catch (err) {
+        // Accumulate more data if decryption failed due to incomplete packet
+        if (err.message.includes('invalid decrypt') && buffer.length < expectedLength) {
+          return; // Wait for more data
+        }
+        
+        clearTimeout(timeout);
+        port.removeListener('data', onData);
+        port.close();  // Ensure port is closed on decryption error
         reject(new Error(`Decryption error: ${err.message}`));
       }
     }
 
-    port.once('data', onData);
+    port.on('data', onData);
 
     port.write(encryptedPacket, (err) => {
       if (err) {
         clearTimeout(timeout);
         port.removeListener('data', onData);
+        port.close();  // Ensure port is closed on write error
         reject(new Error(`Error sending HW info request: ${err.message}`));
       } else {
         console.log('HW info request sent');
@@ -124,6 +136,7 @@ function requestHWInfo(port) {
     });
   });
 }
+
 
 async function main() {
   const portName = 'COM3';  // Change this to your actual port name

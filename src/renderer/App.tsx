@@ -9,7 +9,7 @@ import VehicleSelector from '../components/Selectors/VehicleSelector';
 import ShockSetSelector from '../components/Selectors/ShockSetSelector';
 import ShockSelector from '../components/Selectors/ShockSelector';
 import ShockTestInitiator from '../components/Selectors/ShockTestInitiator';
-
+import Ping from '../components/ping';
 
 const MainContainer = styled.div`
   padding: 2rem;
@@ -68,6 +68,7 @@ const App: React.FC = () => {
               <ButtonContainer>
                 <MainButton to="/vehicles">Manage Vehicles</MainButton>
                 <MainButton to="/select-vehicle">Select Shock for Testing</MainButton>
+                <MainButton to="/ping">Ping</MainButton>
               </ButtonContainer>
             </MainContainer>
           }
@@ -77,6 +78,7 @@ const App: React.FC = () => {
         <Route path="/vehicles/:vehicleId/shock-sets" element={<ShockSetManager />} />
         <Route path="/shock-sets/:shockSetId/shocks" element={<ShockManager />} />
         <Route path="/shocks/:shockId/adjusters" element={<AdjusterManager />} />
+        <Route path="/ping" element={<Ping />} />
         
         {/* New routes for shock selection process */}
         <Route path="/select-vehicle" element={<VehicleSelector />} />

@@ -5,9 +5,11 @@ import { ipcMain } from 'electron';
 // Open the database connection
 const dbPath = path.join(__dirname, 'test.db');
 const db = new sqlite3.Database(dbPath);
+const MAX_VEHICLES_PER_USER = 10;
+const MAX_ADJUSTERS_PER_SHOCK = 16;
 
 // Function to handle database queries
-export const handleQueryDatabase = () => {
+export const handleQueryDatabase = () => { 
   ipcMain.handle('query-database', async (event, query) => {
     return new Promise((resolve, reject) => {
       db.all(query, (err, rows) => {
@@ -18,31 +20,43 @@ export const handleQueryDatabase = () => {
   });
 };
 
-// Function to handle insert data
 export const handleInsertData = () => {
   ipcMain.handle('insert-data', async (event, data) => {
     return new Promise((resolve, reject) => {
-      const query = `INSERT INTO Vehicles (User_ID, Vehicle_Type_ID, Nickname_ID, Nickname, Make, Model, Year) 
-                     VALUES (?, ?, ?, ?, ?, ?, ?)`;
-      db.run(
-        query,
-        [
-          data.User_ID,
-          data.Vehicle_Type_ID,
-          data.Nickname_ID,
-          data.Nickname,
-          data.Make,
-          data.Model,
-          data.Year,
-        ],
-        (err) => {
-          if (err) reject(err);
-          else resolve('Vehicle data inserted successfully');
-        },
-      );
+      const checkQuery = `SELECT COUNT(*) AS vehicleCount FROM Vehicles WHERE User_ID = ?`;
+
+      // Check the current vehicle count for the user
+      db.get(checkQuery, [data.User_ID], (err, row) => {
+        if (err) {
+          reject(err);
+        } else if ((row as { vehicleCount: number }).vehicleCount >= MAX_VEHICLES_PER_USER) {
+          reject(new Error(`User already has the maximum of ${MAX_VEHICLES_PER_USER} vehicles`));
+        } else {
+          // Proceed with inserting the new vehicle if limit is not reached
+          const query = `INSERT INTO Vehicles (User_ID, Vehicle_Type_ID, Nickname_ID, Nickname, Make, Model, Year) 
+                         VALUES (?, ?, ?, ?, ?, ?, ?)`;
+          db.run(
+            query,
+            [
+              data.User_ID,
+              data.Vehicle_Type_ID,
+              data.Nickname_ID,
+              data.Nickname,
+              data.Make,
+              data.Model,
+              data.Year,
+            ],
+            (err) => {
+              if (err) reject(err);
+              else resolve('Vehicle data inserted successfully');
+            },
+          );
+        }
+      });
     });
   });
 };
+
 
 // Function to handle delete data
 export const handleDeleteData = () => {

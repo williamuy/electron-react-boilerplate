@@ -50,6 +50,8 @@ const electronHandler = {
   insertAdjuster: (data: any) => ipcRenderer.invoke('insert-adjuster', data),
   updateAdjuster: (data: any) => ipcRenderer.invoke('update-adjuster', data),
   deleteAdjuster: (id: number) => ipcRenderer.invoke('delete-adjuster', id),
+
+  sendPing: (portName: any) => ipcRenderer.invoke('send-ping', portName),
 };
 
 contextBridge.exposeInMainWorld('electron', electronHandler);
