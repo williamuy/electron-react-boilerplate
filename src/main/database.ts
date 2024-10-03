@@ -258,32 +258,48 @@ export const handleQueryShocks = () => {
 
 export const handleInsertAdjuster = () => {
   ipcMain.handle('insert-adjuster', async (event, data) => {
-    console.log("Inserting Adjuster Data:", data); // Log data to verify Adjuster_Type is correct
     return new Promise((resolve, reject) => {
-      const adjusterMax = parseFloat(data.Adjuster_Max);
-      if (adjusterMax > 100 || adjusterMax <= 0) {
-        reject(new Error('Adjuster_Max must be between 1 and 100.'));
-      } else {
-        const insertQuery = `INSERT INTO Adjusters (Shock_ID, Adjuster_ID, Adjuster_Nickname, Adjuster_Type, Adjuster_Max) 
-                             VALUES (?, ?, ?, ?, ?)`;
-        db.run(
-          insertQuery,
-          [
-            data.Shock_ID,
-            data.Adjuster_ID,
-            data.Adjuster_Nickname,
-            data.Adjuster_Type, // Ensure this value is correctly received
-            adjusterMax,
-          ],
-          (err) => {
-            if (err) reject(err);
-            else resolve('Adjuster inserted successfully');
-          },
-        );
-      }
+      // Query to get the current number of adjusters for the given Shock_ID
+      const countQuery = `SELECT COUNT(*) AS adjusterCount FROM Adjusters WHERE Shock_ID = ?`;
+      
+      db.get(countQuery, [data.Shock_ID], (err, row) => {
+        if (err) {
+          reject(err);
+        } else {
+          // Query to get the maximum allowed adjusters for the Shock_ID from the Shocks table
+          const maxAdjustersQuery = `SELECT Adjuster_Amount FROM Shocks WHERE Shock_ID = ?`;
+          
+          db.get(maxAdjustersQuery, [data.Shock_ID], (err, shock) => {
+            if (err) {
+              reject(err);
+            } else if (((row as { adjusterCount: number }).adjusterCount || 0) >= ((shock as { Adjuster_Amount: number }).Adjuster_Amount)) {
+              reject(new Error(`Cannot add more adjusters. Maximum allowed is ${(shock as { Adjuster_Amount: number }).Adjuster_Amount}.`));
+            } else {
+              // Proceed to insert the new adjuster if the limit is not reached
+              const insertQuery = `INSERT INTO Adjusters (Shock_ID, Adjuster_ID, Adjuster_Nickname, Adjuster_Type, Adjuster_Max) 
+                                   VALUES (?, ?, ?, ?, ?)`;
+              db.run(
+                insertQuery,
+                [
+                  data.Shock_ID,
+                  data.Adjuster_ID,
+                  data.Adjuster_Nickname,
+                  data.Adjuster_Type,
+                  data.Adjuster_Max,
+                ],
+                (err) => {
+                  if (err) reject(err);
+                  else resolve('Adjuster inserted successfully');
+                },
+              );
+            }
+          });
+        }
+      });
     });
   });
 };
+
 
 
 
