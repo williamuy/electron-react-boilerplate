@@ -5,8 +5,10 @@ import { ipcMain } from 'electron';
 // Open the database connection
 const dbPath = path.join(__dirname, 'test.db');
 const db = new sqlite3.Database(dbPath);
+
+
 const MAX_VEHICLES_PER_USER = 10;
-const MAX_ADJUSTERS_PER_SHOCK = 16;
+const MAX_ADJUSTERS_PER_SHOCK = 10;
 
 // Function to handle database queries
 export const handleQueryDatabase = () => { 
@@ -170,56 +172,63 @@ export const handleDeleteShockSet = () => {
   });
 };
 
-// Function to insert a new Shock
 export const handleInsertShock = () => {
   ipcMain.handle('insert-shock', async (event, data) => {
     return new Promise((resolve, reject) => {
-      const query = `INSERT INTO Shocks (Shock_Set_ID, Shock_Brand, Shock_Name, Shock_Location, isAdjustable, Adjuster_Amount) 
-                     VALUES (?, ?, ?, ?, ?, ?)`;
-      db.run(
-        query,
-        [
-          data.Shock_Set_ID,
-          data.Shock_Brand,
-          data.Shock_Name,
-          data.Shock_Location,
-          data.isAdjustable,
-          data.Adjuster_Amount,
-        ],
-        (err) => {
-          if (err) reject(err);
-          else resolve('Shock inserted successfully');
-        },
-      );
+      if (data.Adjuster_Amount > 10) {
+        reject(new Error('Adjuster amount cannot exceed 10.'));
+      } else {
+        const query = `INSERT INTO Shocks (Shock_Set_ID, Shock_Brand, Shock_Name, Shock_Location, isAdjustable, Adjuster_Amount) 
+                       VALUES (?, ?, ?, ?, ?, ?)`;
+        db.run(
+          query,
+          [
+            data.Shock_Set_ID,
+            data.Shock_Brand,
+            data.Shock_Name,
+            data.Shock_Location,
+            data.isAdjustable,
+            data.Adjuster_Amount,
+          ],
+          (err) => {
+            if (err) reject(err);
+            else resolve('Shock inserted successfully');
+          },
+        );
+      }
     });
   });
 };
 
-// Function to update an existing Shock
 export const handleUpdateShock = () => {
   ipcMain.handle('update-shock', async (event, data) => {
     return new Promise((resolve, reject) => {
-      const query = `UPDATE Shocks 
-                     SET Shock_Brand = ?, Shock_Name = ?, Shock_Location = ?, isAdjustable = ?, Adjuster_Amount = ? 
-                     WHERE Shock_ID = ?`;
-      db.run(
-        query,
-        [
-          data.Shock_Brand,
-          data.Shock_Name,
-          data.Shock_Location,
-          data.isAdjustable,
-          data.Adjuster_Amount,
-          data.Shock_ID,
-        ],
-        (err) => {
-          if (err) reject(err);
-          else resolve('Shock updated successfully');
-        },
-      );
+      if (data.Adjuster_Amount > 10) {
+        reject(new Error('Adjuster amount cannot exceed 10.'));
+      } else {
+        const query = `UPDATE Shocks 
+                       SET Shock_Brand = ?, Shock_Name = ?, Shock_Location = ?, isAdjustable = ?, Adjuster_Amount = ? 
+                       WHERE Shock_ID = ?`;
+        db.run(
+          query,
+          [
+            data.Shock_Brand,
+            data.Shock_Name,
+            data.Shock_Location,
+            data.isAdjustable,
+            data.Adjuster_Amount,
+            data.Shock_ID,
+          ],
+          (err) => {
+            if (err) reject(err);
+            else resolve('Shock updated successfully');
+          },
+        );
+      }
     });
   });
 };
+
 
 // Function to delete a Shock by ID
 export const handleDeleteShock = () => {
@@ -247,29 +256,37 @@ export const handleQueryShocks = () => {
   });
 };
 
-// Function to insert a new Adjuster
 export const handleInsertAdjuster = () => {
   ipcMain.handle('insert-adjuster', async (event, data) => {
+    console.log("Inserting Adjuster Data:", data); // Log data to verify Adjuster_Type is correct
     return new Promise((resolve, reject) => {
-      const query = `INSERT INTO Adjusters (Shock_ID, Adjuster_ID, Adjuster_Nickname, Adjuster_Type, Adjuster_Max) 
-                     VALUES (?, ?, ?, ?, ?)`;
-      db.run(
-        query,
-        [
-          data.Shock_ID,
-          data.Adjuster_ID,
-          data.Adjuster_Nickname,
-          data.Adjuster_Type,
-          data.Adjuster_Max,
-        ],
-        (err) => {
-          if (err) reject(err);
-          else resolve('Adjuster inserted successfully');
-        },
-      );
+      const adjusterMax = parseFloat(data.Adjuster_Max);
+      if (adjusterMax > 100 || adjusterMax <= 0) {
+        reject(new Error('Adjuster_Max must be between 1 and 100.'));
+      } else {
+        const insertQuery = `INSERT INTO Adjusters (Shock_ID, Adjuster_ID, Adjuster_Nickname, Adjuster_Type, Adjuster_Max) 
+                             VALUES (?, ?, ?, ?, ?)`;
+        db.run(
+          insertQuery,
+          [
+            data.Shock_ID,
+            data.Adjuster_ID,
+            data.Adjuster_Nickname,
+            data.Adjuster_Type, // Ensure this value is correctly received
+            adjusterMax,
+          ],
+          (err) => {
+            if (err) reject(err);
+            else resolve('Adjuster inserted successfully');
+          },
+        );
+      }
     });
   });
 };
+
+
+
 
 // Function to query Adjusters for a specific Shock
 export const handleQueryAdjusters = () => {
@@ -280,6 +297,7 @@ export const handleQueryAdjusters = () => {
         if (err) {
           reject(err);
         } else {
+          console.log("Fetched Adjusters:", rows); // Log to verify correct data
           resolve(rows);
         }
       });
@@ -287,29 +305,36 @@ export const handleQueryAdjusters = () => {
   });
 };
 
-// Function to update an existing Adjuster
+
+
 export const handleUpdateAdjuster = () => {
   ipcMain.handle('update-adjuster', async (event, data) => {
     return new Promise((resolve, reject) => {
-      const query = `UPDATE Adjusters 
-                     SET Adjuster_Nickname = ?, Adjuster_Type = ?, Adjuster_Max = ? 
-                     WHERE Adjuster_ID = ?`;
-      db.run(
-        query,
-        [
-          data.Adjuster_Nickname,
-          data.Adjuster_Type,
-          data.Adjuster_Max,
-          data.Adjuster_ID,
-        ],
-        (err) => {
-          if (err) reject(err);
-          else resolve('Adjuster updated successfully');
-        },
-      );
+      // Validate Adjuster_Max does not exceed 100
+      if (data.Adjuster_Max > 100) {
+        reject(new Error('Adjuster_Max cannot exceed 100.'));
+      } else {
+        const query = `UPDATE Adjusters 
+                       SET Adjuster_Nickname = ?, Adjuster_Type = ?, Adjuster_Max = ? 
+                       WHERE Adjuster_ID = ?`;
+        db.run(
+          query,
+          [
+            data.Adjuster_Nickname,
+            data.Adjuster_Type,
+            data.Adjuster_Max,
+            data.Adjuster_ID,
+          ],
+          (err) => {
+            if (err) reject(err);
+            else resolve('Adjuster updated successfully');
+          },
+        );
+      }
     });
   });
 };
+
 
 // Function to delete an Adjuster by ID
 export const handleDeleteAdjuster = () => {

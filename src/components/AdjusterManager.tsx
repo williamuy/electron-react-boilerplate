@@ -5,8 +5,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 interface AdjusterData {
   Adjuster_ID: number;
   Shock_ID: number;
-  Adjuster_Nickname: string;
-  Adjuster_Type: string;
+  Adjuster_Nickname: string; // Corresponds to the predefined adjuster types
+  Adjuster_Type: string; // Corresponds to Clicks, Turns, Percentage
   Adjuster_Max: number;
 }
 
@@ -74,6 +74,15 @@ const Input = styled.input`
   font-size: 1rem;
 `;
 
+const Select = styled.select`
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  width: 100%;
+  font-size: 1rem;
+`;
+
 const FormModal = styled.div`
   position: fixed;
   top: 50%;
@@ -116,12 +125,27 @@ const AdjusterManager: React.FC = () => {
   const [newAdjuster, setNewAdjuster] = useState<Partial<AdjusterData>>({
     Adjuster_Nickname: '',
     Adjuster_Type: '',
-    Adjuster_Max: 0,
+    Adjuster_Max: 1, // Initialize with a positive default value
   });
   const [showForm, setShowForm] = useState(false);
 
   const { shockId } = useParams<{ shockId: string }>();
   const navigate = useNavigate();
+
+  // Predefined lists
+  const adjusterTypes = [
+    'Compression',
+    'Rebound',
+    'High Speed Compression',
+    'High Speed Rebound',
+    'Low Speed Compression',
+    'Low Speed Rebound',
+    'Bypass',
+    'Compression Bypass',
+    'Rebound Bypass',
+  ];
+
+  const adjusterMethods = ['Clicks', 'Turns', 'Percentage'];
 
   useEffect(() => {
     fetchAdjusters();
@@ -130,6 +154,7 @@ const AdjusterManager: React.FC = () => {
   const fetchAdjusters = async () => {
     try {
       const result = await window.electron.queryAdjusters(parseInt(shockId || '0'));
+      console.log("Fetched Adjusters:", result); // Ensure Adjuster_Type is fetched
       setAdjusters(result);
     } catch (error) {
       console.error('Error fetching adjusters:', error);
@@ -145,22 +170,27 @@ const AdjusterManager: React.FC = () => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (editingId) {
-        await window.electron.updateAdjuster({
-          ...newAdjuster,
-          Adjuster_ID: editingId,
-          Shock_ID: parseInt(shockId || '0'),
-        });
+      // Ensure Adjuster_Max is positive and not zero
+      if (newAdjuster.Adjuster_Max && newAdjuster.Adjuster_Max > 0 && newAdjuster.Adjuster_Max <= 100) {
+        if (editingId) {
+          await window.electron.updateAdjuster({
+            ...newAdjuster,
+            Adjuster_ID: editingId,
+            Shock_ID: parseInt(shockId || '0'),
+          });
+        } else {
+          const adjusterWithRandomId = {
+            ...newAdjuster,
+            Adjuster_ID: Math.floor(Math.random() * 10000),
+            Shock_ID: parseInt(shockId || '0'),
+          };
+          await window.electron.insertAdjuster(adjusterWithRandomId);
+        }
+        resetForm();
+        fetchAdjusters();
       } else {
-        const adjusterWithRandomId = {
-          ...newAdjuster,
-          Adjuster_ID: Math.floor(Math.random() * 10000),
-          Shock_ID: parseInt(shockId || '0'),
-        };
-        await window.electron.insertAdjuster(adjusterWithRandomId);
+        alert("Max value must be between 1 and 100.");
       }
-      resetForm();
-      fetchAdjusters();
     } catch (error) {
       console.error('Error saving adjuster:', error);
     }
@@ -175,11 +205,11 @@ const AdjusterManager: React.FC = () => {
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setNewAdjuster((prev) => ({
       ...prev,
-      [name]: name === 'Adjuster_Max' ? parseInt(value) || 0 : value,
+      [name]: name === 'Adjuster_Max' ? parseFloat(value) || 0 : value,
     }));
   };
 
@@ -188,7 +218,7 @@ const AdjusterManager: React.FC = () => {
     setNewAdjuster({
       Adjuster_Nickname: '',
       Adjuster_Type: '',
-      Adjuster_Max: 0,
+      Adjuster_Max: 1, // Default value for positive max
     });
     setShowForm(false);
   };
@@ -209,6 +239,7 @@ const AdjusterManager: React.FC = () => {
         {adjusters.map((adjuster) => (
           <AdjusterCard key={adjuster.Adjuster_ID}>
             <h3>{adjuster.Adjuster_Nickname}</h3>
+            <AdjusterInfo><strong>Nickname:</strong> {adjuster.Adjuster_Nickname}</AdjusterInfo>
             <AdjusterInfo><strong>Type:</strong> {adjuster.Adjuster_Type}</AdjusterInfo>
             <AdjusterInfo><strong>Max:</strong> {adjuster.Adjuster_Max}</AdjusterInfo>
             <ButtonGroup>
@@ -227,26 +258,39 @@ const AdjusterManager: React.FC = () => {
           <FormModal>
             <h3>{editingId ? 'Edit Adjuster' : 'Add New Adjuster'}</h3>
             <form onSubmit={handleSave}>
-              <Input
-                type="text"
+              <Select
                 name="Adjuster_Nickname"
                 value={newAdjuster.Adjuster_Nickname || ''}
                 onChange={handleInputChange}
-                placeholder="Adjuster Nickname"
                 required
-              />
-              <Input
-                type="text"
+              >
+                <option value="">Select Adjuster Type</option>
+                {adjusterTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </Select>
+              <Select
                 name="Adjuster_Type"
                 value={newAdjuster.Adjuster_Type || ''}
                 onChange={handleInputChange}
-                placeholder="Adjuster Type"
                 required
-              />
+              >
+                <option value="">Select Adjuster Method</option>
+                {adjusterMethods.map((method) => (
+                  <option key={method} value={method}>
+                    {method}
+                  </option>
+                ))}
+              </Select>
               <Input
                 type="number"
+                step="any"
+                min="1"
+                max="100"
                 name="Adjuster_Max"
-                value={newAdjuster.Adjuster_Max || 0}
+                value={newAdjuster.Adjuster_Max || 1}
                 onChange={handleInputChange}
                 placeholder="Max Value"
                 required

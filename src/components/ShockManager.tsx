@@ -76,6 +76,15 @@ const Input = styled.input`
   font-size: 1rem;
 `;
 
+const Select = styled.select`
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  width: 100%;
+  font-size: 1rem;
+`;
+
 const FormModal = styled.div`
   position: fixed;
   top: 50%;
@@ -118,7 +127,7 @@ const ShockManager: React.FC = () => {
   const [newShock, setNewShock] = useState<Partial<ShockData>>({
     Shock_Brand: '',
     Shock_Name: '',
-    Shock_Location: '',
+    Shock_Location: 'Front',
     isAdjustable: false,
     Adjuster_Amount: 0,
   });
@@ -177,8 +186,9 @@ const ShockManager: React.FC = () => {
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target as HTMLInputElement | HTMLSelectElement;
+    const checked = (e.target as HTMLInputElement).checked;
     setNewShock((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
@@ -190,7 +200,7 @@ const ShockManager: React.FC = () => {
     setNewShock({
       Shock_Brand: '',
       Shock_Name: '',
-      Shock_Location: '',
+      Shock_Location: 'Front',
       isAdjustable: false,
       Adjuster_Amount: 0,
     });
@@ -256,13 +266,19 @@ const ShockManager: React.FC = () => {
                 placeholder="Shock Name"
                 required
               />
-              <Input
-                type="text"
+              <Select
                 name="Shock_Location"
-                value={newShock.Shock_Location || ''}
+                value={newShock.Shock_Location || 'Front'}
                 onChange={handleInputChange}
-                placeholder="Shock Location"
-              />
+                required
+              >
+                <option value="Front">Front</option>
+                <option value="Back">Back</option>
+                <option value="Left Front">Left Front</option>
+                <option value="Right Front">Right Front</option>
+                <option value="Left Rear">Left Rear</option>
+                <option value="Right Rear">Right Rear</option>
+              </Select>
               <label>
                 Adjustable:
                 <Input
