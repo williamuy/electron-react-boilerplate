@@ -46,7 +46,27 @@ ipcMain.handle('send-lever-position', async (event, portName: string, position: 
     throw new Error(error.message);
   }
 });
+import { startRun, endRun } from './STM32';
 
+// ... existing code ...
+
+ipcMain.handle('start-run', async (event, portName: string) => {
+  try {
+    const result = await startRun(portName);
+    return result;
+  } catch (error: any) {
+    throw new Error(error.message);
+  }
+});
+
+ipcMain.handle('end-run', async (event, portName: string) => {
+  try {
+    const result = await endRun(portName);
+    return result;
+  } catch (error: any) {
+    throw new Error(error.message);
+  }
+});
 
 import {
   handleQueryDatabase,

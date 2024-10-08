@@ -305,3 +305,94 @@ function handleLeverPositionResponse(response: Buffer) {
     return null;
   }
 }
+
+const DYNO_SEND_MSG_START_RUN = 0x02;
+const DYNO_SEND_MSG_END_RUN = 0x03;
+
+export function startRun(portName: string): Promise<any> {
+  return sendCommand(portName, DYNO_SEND_MSG_START_RUN, 'start run');
+}
+
+export function endRun(portName: string): Promise<any> {
+  return sendCommand(portName, DYNO_SEND_MSG_END_RUN, 'end run');
+}
+
+function sendCommand(portName: string, commandType: number, commandName: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const port = new SerialPort({ path: portName, baudRate: 9600 });
+
+    const closePort = () => {
+      if (port.isOpen) {
+        port.close((err) => {
+          if (err) {
+            console.error(`Error closing port: ${err}`);
+          } else {
+            console.log('Port closed successfully');
+          }
+        });
+      }
+    };
+
+    port.on('open', () => {
+      console.log('Port opened:', portName);
+
+      const packet = constructPacket(commandType);
+      const encryptedPacket = encryptData(packet);
+
+      const timeout = setTimeout(() => {
+        closePort();
+        reject(new Error(`Timeout waiting for ${commandName} response`));
+      }, 5000); // 5 second timeout
+
+      function onData(data: Buffer) {
+        clearTimeout(timeout);
+        try {
+          const decryptedResponse = decryptData(data);
+          const response = handleCommandResponse(decryptedResponse, commandType);
+          if (response) {
+            resolve(response);
+          } else {
+            reject(new Error(`Invalid ${commandName} response`));
+          }
+        } catch (err) {
+          reject(err instanceof Error ? err : new Error('Unknown error'));
+        } finally {
+          closePort();
+        }
+      }
+
+      port.once('data', onData);
+
+      port.write(encryptedPacket, (err) => {
+        if (err) {
+          clearTimeout(timeout);
+          port.removeListener('data', onData);
+          closePort();
+          reject(new Error(`Error sending ${commandName}: ${err.message}`));
+        } else {
+          console.log(`${commandName} command sent`);
+        }
+      });
+    });
+
+    port.on('error', (err) => {
+      closePort();
+      reject(new Error(`Port error: ${err.message}`));
+    });
+  });
+}
+
+function handleCommandResponse(response: Buffer, commandType: number) {
+  const parsed = parseDataResponse(response);
+  if (!parsed) return null;
+
+  const { pktType } = parsed;
+  if (pktType === commandType) {
+    console.log(`Command acknowledged: ${commandType}`);
+    return { type: `ack_${commandType === DYNO_SEND_MSG_START_RUN ? 'start_run' : 'end_run'}` };
+  } else {
+    console.log('Unexpected response type:', pktType);
+    return null;
+  }
+}
+

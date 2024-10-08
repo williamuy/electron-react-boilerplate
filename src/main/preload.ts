@@ -54,6 +54,8 @@ const electronHandler = {
   sendPing: (portName: any) => ipcRenderer.invoke('send-ping', portName),
   requestHardwareInfo: (portName: string) => ipcRenderer.invoke('request-hardware-info', portName),
   sendLeverPosition: (portName: string, position: number) => ipcRenderer.invoke('send-lever-position', portName, position),
+  startRun: (portName: string) => ipcRenderer.invoke('start-run', portName),
+  endRun: (portName: string) => ipcRenderer.invoke('end-run', portName),
 };
 
 contextBridge.exposeInMainWorld('electron', electronHandler);

@@ -8,6 +8,7 @@ const SerialCommunicationComponent = () => {
   const [error, setError] = useState<string | null>(null);
   const [position, setPosition] = useState(1);
   const [leverPositionResult, setLeverPositionResult] = useState<string | null>(null);
+  const [runStatus, setRunStatus] = useState<string | null>(null);
 
   const handlePing = async () => {
     try {
@@ -48,20 +49,68 @@ const SerialCommunicationComponent = () => {
     }
   };
 
+  const handleStartRun = async () => {
+    try {
+      const response = await window.electron.startRun(portName);
+      setRunStatus('Run started');
+      setError(null);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      console.error('Start run error:', errorMessage);
+      setError(`Start run error: ${errorMessage}`);
+      setRunStatus(null);
+    }
+  };
+
+  const handleEndRun = async () => {
+    try {
+      const response = await window.electron.endRun(portName);
+      setRunStatus('Run ended');
+      setError(null);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      console.error('End run error:', errorMessage);
+      setError(`End run error: ${errorMessage}`);
+      setRunStatus(null);
+    }
+  };
+
   return (
     <div>
-      <h1>Serial Communication</h1>
-      <input
-        type="text"
-        value={portName}
-        onChange={(e) => setPortName(e.target.value)}
-        placeholder="Enter COM port"
-      />
-      <button onClick={handlePing}>Send Ping</button>
-      <button onClick={handleRequestHardwareInfo}>Request Hardware Info</button>
+      <h1>Shock Absorber Testing System</h1>
       
       <div>
-        <h2>Set Lever Position</h2>
+        <h2>Communication Settings</h2>
+        <input
+          type="text"
+          value={portName}
+          onChange={(e) => setPortName(e.target.value)}
+          placeholder="Enter COM port"
+        />
+      </div>
+
+      <div>
+        <h2>System Check</h2>
+        <button onClick={handlePing}>Send Ping</button>
+        <button onClick={handleRequestHardwareInfo}>Request Hardware Info</button>
+        {pingResult && (
+          <div>
+            <h3>Ping Result</h3>
+            <p>{pingResult}</p>
+          </div>
+        )}
+        {hardwareInfo && (
+          <div>
+            <h3>Hardware Info</h3>
+            <p>Serial Number: {hardwareInfo.serialNumber}</p>
+            <p>Extra 1 Enabled: {hardwareInfo.ex1Enabled ? 'Yes' : 'No'}</p>
+            <p>Extra 2 Enabled: {hardwareInfo.ex2Enabled ? 'Yes' : 'No'}</p>
+          </div>
+        )}
+      </div>
+      
+      <div>
+        <h2>Lever Position Control</h2>
         <input
           type="number"
           value={position}
@@ -71,32 +120,22 @@ const SerialCommunicationComponent = () => {
           placeholder="Enter position (1-255)"
         />
         <button onClick={handleSetLeverPosition}>Set Lever Position</button>
+        {leverPositionResult && (
+          <div>
+            <h3>Lever Position Result</h3>
+            <p>{leverPositionResult}</p>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <h2>Run Control</h2>
+        <button onClick={handleStartRun}>Start Run</button>
+        <button onClick={handleEndRun}>End Run</button>
+        {runStatus && <p>Status: {runStatus}</p>}
       </div>
       
       {error && <p style={{ color: 'red' }}>{error}</p>}
-      
-      {pingResult && (
-        <div>
-          <h2>Ping Result</h2>
-          <p>{pingResult}</p>
-        </div>
-      )}
-      
-      {hardwareInfo && (
-        <div>
-          <h2>Hardware Info</h2>
-          <p>Serial Number: {hardwareInfo.serialNumber}</p>
-          <p>Extra 1 Enabled: {hardwareInfo.ex1Enabled ? 'Yes' : 'No'}</p>
-          <p>Extra 2 Enabled: {hardwareInfo.ex2Enabled ? 'Yes' : 'No'}</p>
-        </div>
-      )}
-
-      {leverPositionResult && (
-        <div>
-          <h2>Lever Position Result</h2>
-          <p>{leverPositionResult}</p>
-        </div>
-      )}
     </div>
   );
 };
