@@ -222,3 +222,86 @@ function handleHardwareInfoResponse(response: Buffer): HardwareInfo | null {
     return null;
   }
 }
+
+const DYNO_SEND_MSG_LEVER_POSITION = 0x05;
+
+export function sendLeverPosition(portName: string, position: number): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const port = new SerialPort({ path: portName, baudRate: 9600 });
+
+    const closePort = () => {
+      if (port.isOpen) {
+        port.close((err) => {
+          if (err) {
+            console.error('Error closing port:', err);
+          } else {
+            console.log('Port closed successfully');
+          }
+        });
+      }
+    };
+
+    port.on('open', () => {
+      console.log('Port opened:', portName);
+
+      const data = Buffer.alloc(8);
+      data.writeUInt8(position, 0);
+      const packet = constructPacket(DYNO_SEND_MSG_LEVER_POSITION, data);
+      const encryptedPacket = encryptData(packet);
+
+      const timeout = setTimeout(() => {
+        closePort();
+        reject(new Error('Timeout waiting for lever position response'));
+      }, 5000); // 5 second timeout
+
+      function onData(data: Buffer) {
+        clearTimeout(timeout);
+        try {
+          const decryptedResponse = decryptData(data);
+          const response = handleLeverPositionResponse(decryptedResponse);
+          if (response) {
+            resolve(response);
+          } else {
+            reject(new Error('Invalid lever position response'));
+          }
+        } catch (err) {
+          reject(err instanceof Error ? err : new Error('Unknown error'));
+        } finally {
+          closePort();
+        }
+      }
+
+      port.once('data', onData);
+
+      port.write(encryptedPacket, (err) => {
+        if (err) {
+          clearTimeout(timeout);
+          port.removeListener('data', onData);
+          closePort();
+          reject(new Error(`Error sending lever position: ${err.message}`));
+        } else {
+          console.log('Lever position sent');
+        }
+      });
+    });
+
+    port.on('error', (err) => {
+      closePort();
+      reject(new Error(`Port error: ${err.message}`));
+    });
+  });
+}
+
+function handleLeverPositionResponse(response: Buffer) {
+  const parsed = parseDataResponse(response);
+  if (!parsed) return null;
+
+  const { pktType } = parsed;
+  if (pktType === DYNO_SEND_MSG_LEVER_POSITION) {
+    console.log('Lever position acknowledged');
+    return { type: 'ack_lever_position' };
+  } else {
+    console.log('Unexpected response type:', pktType);
+    return null;
+  }
+}
