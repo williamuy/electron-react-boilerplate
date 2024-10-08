@@ -7,8 +7,10 @@ const dbPath = path.join(__dirname, 'test.db');
 const db = new sqlite3.Database(dbPath);
 
 
-const MAX_VEHICLES_PER_USER = 10;
+const MAX_VEHICLES_PER_USER = 25;
 const MAX_ADJUSTERS_PER_SHOCK = 10;
+const MAX_ADJUSTER_MAX = 100;
+const MAX_SHOCK_SETS_PER_VEHICLE = 25;
 
 // Function to handle database queries
 export const handleQueryDatabase = () => { 
@@ -112,28 +114,42 @@ export const handleQueryShockSets = () => {
   });
 };
 
-// Function to insert a new Shock Set
+
 export const handleInsertShockSet = () => {
   ipcMain.handle('insert-shock-set', async (event, data) => {
     return new Promise((resolve, reject) => {
-      const query = `INSERT INTO Shocks_Set (Shock_Set_ID, User_ID, Vehicle_ID, Shock_Set_Nickname) 
-                     VALUES (?, ?, ?, ?)`;
-      db.run(
-        query,
-        [
-          data.Shock_Set_ID,
-          data.User_ID,
-          data.Vehicle_ID,
-          data.Shock_Set_Nickname,
-        ],
-        (err) => {
-          if (err) reject(err);
-          else resolve('Shock Set inserted successfully');
-        },
-      );
+      // Check how many Shock Sets are already associated with the given Vehicle_ID
+      const countQuery = `SELECT COUNT(*) AS shockSetCount FROM Shocks_Set WHERE Vehicle_ID = ?`;
+
+      db.get(countQuery, [data.Vehicle_ID], (err, row) => {
+        if (err) {
+          reject(err);
+        } else if ((row as { shockSetCount: number }).shockSetCount >= MAX_SHOCK_SETS_PER_VEHICLE) {
+          // If the number of Shock Sets exceeds the limit, reject the insertion
+          reject(new Error(`Vehicle already has the maximum of ${MAX_SHOCK_SETS_PER_VEHICLE} Shock Sets.`));
+        } else {
+          // Proceed with inserting the new Shock Set if the limit is not reached
+          const query = `INSERT INTO Shocks_Set (Shock_Set_ID, User_ID, Vehicle_ID, Shock_Set_Nickname) 
+                         VALUES (?, ?, ?, ?)`;
+          db.run(
+            query,
+            [
+              data.Shock_Set_ID,
+              data.User_ID,
+              data.Vehicle_ID,
+              data.Shock_Set_Nickname,
+            ],
+            (err) => {
+              if (err) reject(err);
+              else resolve('Shock Set inserted successfully');
+            },
+          );
+        }
+      });
     });
   });
 };
+
 
 // Function to update an existing Shock Set
 export const handleUpdateShockSet = () => {
@@ -175,7 +191,7 @@ export const handleDeleteShockSet = () => {
 export const handleInsertShock = () => {
   ipcMain.handle('insert-shock', async (event, data) => {
     return new Promise((resolve, reject) => {
-      if (data.Adjuster_Amount > 10) {
+      if (data.Adjuster_Amount > MAX_ADJUSTERS_PER_SHOCK) {
         reject(new Error('Adjuster amount cannot exceed 10.'));
       } else {
         const query = `INSERT INTO Shocks (Shock_Set_ID, Shock_Brand, Shock_Name, Shock_Location, isAdjustable, Adjuster_Amount) 
@@ -327,7 +343,7 @@ export const handleUpdateAdjuster = () => {
   ipcMain.handle('update-adjuster', async (event, data) => {
     return new Promise((resolve, reject) => {
       // Validate Adjuster_Max does not exceed 100
-      if (data.Adjuster_Max > 100) {
+      if (data.Adjuster_Max > MAX_ADJUSTER_MAX) {
         reject(new Error('Adjuster_Max cannot exceed 100.'));
       } else {
         const query = `UPDATE Adjusters 
