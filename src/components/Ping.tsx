@@ -52,8 +52,9 @@ const SerialCommunicationComponent = () => {
   const handleStartRun = async () => {
     try {
       const response = await window.electron.startRun(portName);
-      setRunStatus('Run started');
+      setRunStatus('Run started successfully');
       setError(null);
+      console.log('Start run response:', response);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       console.error('Start run error:', errorMessage);
@@ -65,8 +66,9 @@ const SerialCommunicationComponent = () => {
   const handleEndRun = async () => {
     try {
       const response = await window.electron.endRun(portName);
-      setRunStatus('Run ended');
+      setRunStatus('Run ended successfully');
       setError(null);
+      console.log('End run response:', response);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       console.error('End run error:', errorMessage);

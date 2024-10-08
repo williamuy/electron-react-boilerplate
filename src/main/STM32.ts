@@ -305,13 +305,13 @@ function handleLeverPositionResponse(response: Buffer) {
     return null;
   }
 }
-
 const DYNO_SEND_MSG_START_RUN = 0x02;
 const DYNO_SEND_MSG_END_RUN = 0x03;
+const DYNO_RECV_MSG_DATA = 0x05;
 
-export function startRun(portName: string): Promise<any> {
-  return sendCommand(portName, DYNO_SEND_MSG_START_RUN, 'start run');
-}
+// export function startRun(portName: string): Promise<any> {
+//   return sendCommand(portName, DYNO_SEND_MSG_START_RUN, 'start run');
+// }
 
 export function endRun(portName: string): Promise<any> {
   return sendCommand(portName, DYNO_SEND_MSG_END_RUN, 'end run');
@@ -396,3 +396,75 @@ function handleCommandResponse(response: Buffer, commandType: number) {
   }
 }
 
+export function startRun(portName: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const port = new SerialPort({ path: portName, baudRate: 9600 });
+  
+      const closePort = () => {
+        if (port.isOpen) {
+          port.close((err) => {
+            if (err) {
+              console.error('Error closing port:', err);
+            } else {
+              console.log('Port closed successfully');
+            }
+          });
+        }
+      };
+  
+      port.on('open', () => {
+        console.log('Port opened:', portName);
+  
+        const packet = constructPacket(DYNO_SEND_MSG_START_RUN);
+        const encryptedPacket = encryptData(packet);
+  
+        port.write(encryptedPacket, (err) => {
+          if (err) {
+            closePort();
+            reject(new Error(`Error sending start run command: ${err.message}`));
+          } else {
+            console.log('Start run command sent');
+            resolve({ type: 'start_run_sent' });
+  
+            // Set up listener for incoming data
+            port.on('data', (data: Buffer) => {
+              try {
+                const decryptedResponse = decryptData(data);
+                const response = handleDataResponse(decryptedResponse);
+                if (response) {
+                  console.log('Received data:', response);
+                }
+              } catch (err) {
+                console.error('Error processing incoming data:', err);
+              }
+            });
+          }
+        });
+      });
+  
+      port.on('error', (err) => {
+        closePort();
+        reject(new Error(`Port error: ${err.message}`));
+      });
+    });
+  }
+  
+  function handleDataResponse(response: Buffer) {
+    const parsed = parseDataResponse(response);
+    if (!parsed) return null;
+  
+    const { pktType, data } = parsed;
+    if (pktType === DYNO_RECV_MSG_DATA) {
+      const force = data.readFloatLE(0);
+      const position = data.readFloatLE(4);
+      const velocity = data.readFloatLE(8);
+      const timeSinceStart = data.readUInt32LE(12);
+      const extra1 = data.readFloatLE(16);
+      const extra2 = data.readFloatLE(20);
+  
+      return { force, position, velocity, timeSinceStart, extra1, extra2 };
+    } else {
+      console.log('Unexpected response type:', pktType);
+      return null;
+    }
+  }
