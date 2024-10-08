@@ -1,5 +1,6 @@
 import { SerialPort } from 'serialport';
 import crypto from 'crypto';
+import { HardwareInfo } from './preload';
 
 // Constants
 const AES_KEY = Buffer.from('bf8768f5dd65d04b67f188aa3633d6d4', 'hex');
@@ -69,37 +70,120 @@ export function handlePingResponse(response: Buffer) {
     return null;
   }
 }
-
 export function sendPing(portName: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const port = new SerialPort({ path: portName, baudRate: 9600 });
+  
+      const closePort = () => {
+        if (port.isOpen) {
+          port.close((err) => {
+            if (err) {
+              console.error('Error closing port:', err);
+            } else {
+              console.log('Port closed successfully');
+            }
+          });
+        }
+      };
+  
+      port.on('open', () => {
+        console.log('Port opened:', portName);
+  
+        const packet = constructPacket(DYNO_SEND_MSG_PING);
+        const encryptedPacket = encryptData(packet);
+  
+        const timeout = setTimeout(() => {
+          closePort();
+          reject(new Error('Timeout waiting for ping response'));
+        }, 5000); // 5 second timeout
+  
+        function onData(data: Buffer) {
+          clearTimeout(timeout);
+          try {
+            const decryptedResponse = decryptData(data);
+            const response = handlePingResponse(decryptedResponse);
+            if (response) {
+              resolve(response);
+            } else {
+              reject(new Error('Invalid ping response'));
+            }
+          } catch (err) {
+            if (err instanceof Error) {
+              reject(new Error(`Decryption error: ${err.message}`));
+            } else {
+              reject(new Error('Decryption error: Unknown error'));
+            }
+          } finally {
+            closePort();
+          }
+        }
+  
+        port.once('data', onData);
+  
+        port.write(encryptedPacket, (err) => {
+          if (err) {
+            clearTimeout(timeout);
+            port.removeListener('data', onData);
+            closePort();
+            reject(new Error(`Error sending ping: ${err.message}`));
+          } else {
+            console.log('Ping sent');
+          }
+        });
+      });
+  
+      port.on('error', (err) => {
+        closePort();
+        reject(new Error(`Port error: ${err.message}`));
+      });
+    });
+  }
+
+
+const DYNO_SEND_MSG_REQUEST_HW_INFO = 0x0e;
+const DYNO_RECV_MSG_RETURN_HW_INFO = 0x08;
+
+export function requestHardwareInfo(portName: string): Promise<HardwareInfo> {
   return new Promise((resolve, reject) => {
     const port = new SerialPort({ path: portName, baudRate: 9600 });
+
+    const closePort = () => {
+      if (port.isOpen) {
+        port.close((err) => {
+          if (err) {
+            console.error('Error closing port:', err);
+          } else {
+            console.log('Port closed successfully');
+          }
+        });
+      }
+    };
 
     port.on('open', () => {
       console.log('Port opened:', portName);
 
-      const packet = constructPacket(DYNO_SEND_MSG_PING);
+      const packet = constructPacket(DYNO_SEND_MSG_REQUEST_HW_INFO);
       const encryptedPacket = encryptData(packet);
 
       const timeout = setTimeout(() => {
-        reject(new Error('Timeout waiting for ping response'));
+        closePort();
+        reject(new Error('Timeout waiting for hardware info response'));
       }, 5000); // 5 second timeout
 
       function onData(data: Buffer) {
         clearTimeout(timeout);
         try {
           const decryptedResponse = decryptData(data);
-          const response = handlePingResponse(decryptedResponse);
+          const response = handleHardwareInfoResponse(decryptedResponse);
           if (response) {
             resolve(response);
           } else {
-            reject(new Error('Invalid ping response'));
+            reject(new Error('Invalid hardware info response'));
           }
         } catch (err) {
-          if (err instanceof Error) {
-            reject(new Error(`Decryption error: ${err.message}`));
-          } else {
-            reject(new Error('Decryption error: Unknown error'));
-          }
+          reject(err instanceof Error ? err : new Error('Unknown error'));
+        } finally {
+          closePort();
         }
       }
 
@@ -109,15 +193,32 @@ export function sendPing(portName: string): Promise<any> {
         if (err) {
           clearTimeout(timeout);
           port.removeListener('data', onData);
-          reject(new Error(`Error sending ping: ${err.message}`));
+          closePort();
+          reject(new Error(`Error sending hardware info request: ${err.message}`));
         } else {
-          console.log('Ping sent');
+          console.log('Hardware info request sent');
         }
       });
     });
 
     port.on('error', (err) => {
+      closePort();
       reject(new Error(`Port error: ${err.message}`));
     });
   });
+}
+function handleHardwareInfoResponse(response: Buffer): HardwareInfo | null {
+  const parsed = parseDataResponse(response);
+  if (!parsed) return null;
+
+  const { pktType, data } = parsed;
+  if (pktType === DYNO_RECV_MSG_RETURN_HW_INFO) {
+    const serialNumber = data.slice(0, 16).toString('utf8').replace(/\0/g, '');
+    const ex1Enabled = data.readUInt8(16) !== 0;
+    const ex2Enabled = data.readUInt8(17) !== 0;
+    return { serialNumber, ex1Enabled, ex2Enabled };
+  } else {
+    console.log('Unexpected response type:', pktType);
+    return null;
+  }
 }
