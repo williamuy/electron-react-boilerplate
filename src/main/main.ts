@@ -48,21 +48,26 @@ ipcMain.handle('send-lever-position', async (event, portName: string, position: 
 });
 import { startRun, endRun } from './STM32';
 
-// ... existing code ...
+let runningPort: SerialPort | null = null;
 
 ipcMain.handle('start-run', async (event, portName: string) => {
   try {
-    const result = await startRun(portName);
-    return result;
+    runningPort = await startRun(portName);
+    return { success: true, message: 'Run started successfully' };
   } catch (error: any) {
     throw new Error(error.message);
   }
 });
 
-ipcMain.handle('end-run', async (event, portName: string) => {
+ipcMain.handle('end-run', async (event) => {
   try {
-    const result = await endRun(portName);
-    return result;
+    if (runningPort) {
+      await endRun(runningPort);
+      runningPort = null;
+      return { success: true, message: 'Run ended successfully' };
+    } else {
+      throw new Error('No active run to end');
+    }
   } catch (error: any) {
     throw new Error(error.message);
   }
@@ -86,6 +91,7 @@ import {
   handleUpdateAdjuster,
   handleDeleteAdjuster,
 } from './database';
+import { SerialPort } from 'serialport';
 
 app.on('ready', () => {
   // Call the functions to set up ipcMain handlers

@@ -313,9 +313,9 @@ const DYNO_RECV_MSG_DATA = 0x05;
 //   return sendCommand(portName, DYNO_SEND_MSG_START_RUN, 'start run');
 // }
 
-export function endRun(portName: string): Promise<any> {
-  return sendCommand(portName, DYNO_SEND_MSG_END_RUN, 'end run');
-}
+// export function endRun(portName: string): Promise<any> {
+//   return sendCommand(portName, DYNO_SEND_MSG_END_RUN, 'end run');
+// }
 
 function sendCommand(portName: string, commandType: number, commandName: string): Promise<any> {
   return new Promise((resolve, reject) => {
@@ -396,59 +396,46 @@ function handleCommandResponse(response: Buffer, commandType: number) {
   }
 }
 
-export function startRun(portName: string): Promise<any> {
-    return new Promise((resolve, reject) => {
-      const port = new SerialPort({ path: portName, baudRate: 9600 });
-  
-      const closePort = () => {
-        if (port.isOpen) {
-          port.close((err) => {
-            if (err) {
-              console.error('Error closing port:', err);
-            } else {
-              console.log('Port closed successfully');
+export function startRun(portName: string): Promise<SerialPort> {
+  return new Promise((resolve, reject) => {
+    const port = new SerialPort({ path: portName, baudRate: 9600 });
+
+    port.on('open', () => {
+      console.log('Port opened:', portName);
+
+      const packet = constructPacket(DYNO_SEND_MSG_START_RUN);
+      const encryptedPacket = encryptData(packet);
+
+      port.write(encryptedPacket, (err) => {
+        if (err) {
+          port.close();
+          reject(new Error(`Error sending start run command: ${err.message}`));
+        } else {
+          console.log('Start run command sent');
+          
+          // Set up listener for incoming data
+          port.on('data', (data: Buffer) => {
+            try {
+              const decryptedResponse = decryptData(data);
+              const response = handleDataResponse(decryptedResponse);
+              if (response) {
+                console.log('Received data:', response);
+              }
+            } catch (err) {
+              console.error('Error processing incoming data:', err);
             }
           });
+
+          resolve(port);
         }
-      };
-  
-      port.on('open', () => {
-        console.log('Port opened:', portName);
-  
-        const packet = constructPacket(DYNO_SEND_MSG_START_RUN);
-        const encryptedPacket = encryptData(packet);
-  
-        port.write(encryptedPacket, (err) => {
-          if (err) {
-            closePort();
-            reject(new Error(`Error sending start run command: ${err.message}`));
-          } else {
-            console.log('Start run command sent');
-            resolve({ type: 'start_run_sent' });
-  
-            // Set up listener for incoming data
-            port.on('data', (data: Buffer) => {
-              try {
-                const decryptedResponse = decryptData(data);
-                const response = handleDataResponse(decryptedResponse);
-                if (response) {
-                  console.log('Received data:', response);
-                }
-              } catch (err) {
-                console.error('Error processing incoming data:', err);
-              }
-            });
-          }
-        });
-      });
-  
-      port.on('error', (err) => {
-        closePort();
-        reject(new Error(`Port error: ${err.message}`));
       });
     });
-  }
-  
+
+    port.on('error', (err) => {
+      reject(new Error(`Port error: ${err.message}`));
+    });
+  });
+}
   function handleDataResponse(response: Buffer) {
     const parsed = parseDataResponse(response);
     if (!parsed) return null;
@@ -468,3 +455,32 @@ export function startRun(portName: string): Promise<any> {
       return null;
     }
   }
+
+export function endRun(port: SerialPort): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const packet = constructPacket(DYNO_SEND_MSG_END_RUN);
+    const encryptedPacket = encryptData(packet);
+
+    port.write(encryptedPacket, (err) => {
+      if (err) {
+        reject(new Error(`Error sending end run command: ${err.message}`));
+      } else {
+        console.log('End run command sent');
+        
+        // Remove all listeners to stop processing incoming data
+        port.removeAllListeners('data');
+
+        // Close the port
+        port.close((closeErr) => {
+          if (closeErr) {
+            console.error('Error closing port:', closeErr);
+            reject(new Error(`Error closing port: ${closeErr.message}`));
+          } else {
+            console.log('Port closed successfully');
+            resolve();
+          }
+        });
+      }
+    });
+  });
+}
