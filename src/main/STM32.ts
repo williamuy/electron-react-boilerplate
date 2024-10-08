@@ -484,3 +484,25 @@ export function endRun(port: SerialPort): Promise<void> {
     });
   });
 }
+
+export function checkConnection(portName: string): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      const port = new SerialPort({ path: portName, baudRate: 9600 });
+  
+      const timeout = setTimeout(() => {
+        port.close();
+        resolve(false);
+      }, 2000);
+  
+      port.on('open', () => {
+        clearTimeout(timeout);
+        port.close();
+        resolve(true);
+      });
+  
+      port.on('error', () => {
+        clearTimeout(timeout);
+        resolve(false);
+      });
+    });
+  }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HardwareInfo } from '../main/preload';
 
 const SerialCommunicationComponent = () => {
@@ -9,6 +9,42 @@ const SerialCommunicationComponent = () => {
   const [position, setPosition] = useState(1);
   const [leverPositionResult, setLeverPositionResult] = useState<string | null>(null);
   const [runStatus, setRunStatus] = useState<string | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
+  const [timer, setTimer] = useState(0);
+  const [isConnected, setIsConnected] = useState(false);
+
+  useEffect(() => {
+    const checkConnectionStatus = async () => {
+      if (!isRunning) {
+        try {
+          const connected = await window.electron.checkConnection(portName);
+          setIsConnected(connected);
+        } catch (err) {
+          console.error('Connection check error:', err);
+          setIsConnected(false);
+        }
+      }
+    };
+
+    checkConnectionStatus();
+    const interval = setInterval(checkConnectionStatus, 5000); // Check every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [portName, isRunning]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (isRunning) {
+      interval = setInterval(() => {
+        setTimer((prevTimer) => prevTimer + 1);
+      }, 1000);
+    } else if (!isRunning && timer !== 0) {
+      if (interval) clearInterval(interval);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isRunning, timer]);
 
   const handlePing = async () => {
     try {
@@ -52,7 +88,10 @@ const SerialCommunicationComponent = () => {
   const handleStartRun = async () => {
     try {
       const response = await window.electron.startRun(portName);
-      setRunStatus('Run started successfully');
+      setRunStatus('Run started');
+      setIsRunning(true);
+      setIsConnected(true); // Assume connected when run starts
+      setTimer(0);
       setError(null);
       console.log('Start run response:', response);
     } catch (err) {
@@ -66,15 +105,23 @@ const SerialCommunicationComponent = () => {
   const handleEndRun = async () => {
     try {
       const response = await window.electron.endRun(portName);
-      setRunStatus('Run ended successfully');
+      setRunStatus(`Run ended. Total duration: ${timer} seconds`);
+      setIsRunning(false);
       setError(null);
       console.log('End run response:', response);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       console.error('End run error:', errorMessage);
       setError(`End run error: ${errorMessage}`);
-      setRunStatus(null);
+    } finally {
+      setIsConnected(false); // Reset connection status after run ends
     }
+  };
+
+  const formatTime = (totalSeconds: number) => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -89,12 +136,18 @@ const SerialCommunicationComponent = () => {
           onChange={(e) => setPortName(e.target.value)}
           placeholder="Enter COM port"
         />
+        <div style={{ marginTop: '10px' }}>
+          Connection Status: 
+          <span style={{ color: isConnected ? 'green' : 'red', fontWeight: 'bold' }}>
+            {isConnected ? ' Connected' : ' Disconnected'}
+          </span>
+        </div>
       </div>
 
       <div>
         <h2>System Check</h2>
-        <button onClick={handlePing}>Send Ping</button>
-        <button onClick={handleRequestHardwareInfo}>Request Hardware Info</button>
+        <button onClick={handlePing} disabled={!isConnected || isRunning}>Send Ping</button>
+        <button onClick={handleRequestHardwareInfo} disabled={!isConnected || isRunning}>Request Hardware Info</button>
         {pingResult && (
           <div>
             <h3>Ping Result</h3>
@@ -121,7 +174,7 @@ const SerialCommunicationComponent = () => {
           max={255}
           placeholder="Enter position (1-255)"
         />
-        <button onClick={handleSetLeverPosition}>Set Lever Position</button>
+        <button onClick={handleSetLeverPosition} disabled={!isConnected || isRunning}>Set Lever Position</button>
         {leverPositionResult && (
           <div>
             <h3>Lever Position Result</h3>
@@ -132,9 +185,10 @@ const SerialCommunicationComponent = () => {
 
       <div>
         <h2>Run Control</h2>
-        <button onClick={handleStartRun}>Start Run</button>
-        <button onClick={handleEndRun}>End Run</button>
+        <button onClick={handleStartRun} disabled={isRunning || !isConnected}>Start Run</button>
+        <button onClick={handleEndRun} disabled={!isRunning}>End Run</button>
         {runStatus && <p>Status: {runStatus}</p>}
+        <p>Timer: {formatTime(timer)}</p>
       </div>
       
       {error && <p style={{ color: 'red' }}>{error}</p>}

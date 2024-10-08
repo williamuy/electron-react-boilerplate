@@ -16,8 +16,17 @@ import sqlite3 from 'sqlite3';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import {
-  sendPing, requestHardwareInfo, sendLeverPosition // Import sendPing from stm32Connection.ts
+  sendPing, requestHardwareInfo, sendLeverPosition, checkConnection // Import sendPing from stm32Connection.ts
 } from './STM32';
+
+ipcMain.handle('check-connection', async (event, portName: string) => {
+  try {
+    const isConnected = await checkConnection(portName);
+    return isConnected;
+  } catch (error: any) {
+    throw new Error(error.message);
+  }
+});
 
 // Setup the IPC handler for sending ping
 ipcMain.handle('send-ping', async (event, portName: string) => {

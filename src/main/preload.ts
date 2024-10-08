@@ -55,7 +55,8 @@ const electronHandler = {
   requestHardwareInfo: (portName: string) => ipcRenderer.invoke('request-hardware-info', portName),
   sendLeverPosition: (portName: string, position: number) => ipcRenderer.invoke('send-lever-position', portName, position),
   startRun: (portName: string) => ipcRenderer.invoke('start-run', portName),
-  endRun: () => ipcRenderer.invoke('end-run'),
+  endRun: (portName: string) => ipcRenderer.invoke('end-run'),
+  checkConnection: (portName: string) => ipcRenderer.invoke('check-connection', portName),
 };
 
 contextBridge.exposeInMainWorld('electron', electronHandler);
