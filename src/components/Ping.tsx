@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 import { HardwareInfo } from '../main/preload';
 
 const SerialCommunicationComponent = () => {
@@ -12,6 +13,8 @@ const SerialCommunicationComponent = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [timer, setTimer] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
+
+  const navigate = useNavigate(); // Use navigate hook
 
   useEffect(() => {
     const checkConnectionStatus = async () => {
@@ -124,10 +127,15 @@ const SerialCommunicationComponent = () => {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  const handleBack = () => {
+    navigate('/'); // Navigate back to the home page or previous route
+  };
+
   return (
     <div>
+      <button onClick={handleBack} style={{ marginBottom: '1rem' }}>Back</button> {/* Back Button */}
       <h1>Shock Absorber Testing System</h1>
-      
+
       <div>
         <h2>Communication Settings</h2>
         <input
@@ -137,7 +145,7 @@ const SerialCommunicationComponent = () => {
           placeholder="Enter COM port"
         />
         <div style={{ marginTop: '10px' }}>
-          Connection Status: 
+          Connection Status:
           <span style={{ color: isConnected ? 'green' : 'red', fontWeight: 'bold' }}>
             {isConnected ? ' Connected' : ' Disconnected'}
           </span>
@@ -163,7 +171,7 @@ const SerialCommunicationComponent = () => {
           </div>
         )}
       </div>
-      
+
       <div>
         <h2>Lever Position Control</h2>
         <input
@@ -190,7 +198,7 @@ const SerialCommunicationComponent = () => {
         {runStatus && <p>Status: {runStatus}</p>}
         <p>Timer: {formatTime(timer)}</p>
       </div>
-      
+
       {error && <p style={{ color: 'red' }}>{error}</p>}
     </div>
   );
