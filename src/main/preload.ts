@@ -52,6 +52,8 @@ const electronHandler = {
   deleteAdjuster: (id: number) => ipcRenderer.invoke('delete-adjuster', id),
 
   sendPing: (portName: any) => ipcRenderer.invoke('send-ping', portName),
+  requestHWInfo: (portName: any) => ipcRenderer.invoke('request-hwinfo', portName),
+  setLeverPosition: (portName: any, position: number) => ipcRenderer.invoke('set-lever-position', portName, position),
 };
 
 contextBridge.exposeInMainWorld('electron', electronHandler);

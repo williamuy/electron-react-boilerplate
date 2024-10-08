@@ -9,7 +9,7 @@ import VehicleSelector from '../components/Selectors/VehicleSelector';
 import ShockSetSelector from '../components/Selectors/ShockSetSelector';
 import ShockSelector from '../components/Selectors/ShockSelector';
 import ShockTestInitiator from '../components/Selectors/ShockTestInitiator';
-import Ping from '../components/ping';
+import Ping from '../components/Ping';
 
 const MainContainer = styled.div`
   padding: 2rem;
