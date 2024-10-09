@@ -396,7 +396,73 @@ function handleCommandResponse(response: Buffer, commandType: number) {
   }
 }
 
-export function startRun(portName: string): Promise<SerialPort> {
+import { app, dialog } from 'electron';
+import { createObjectCsvWriter } from 'csv-writer';
+import path from 'path';
+
+let csvWriter: any;
+let intervalCounter = 0;
+let testLogId: string;
+
+// Function to choose save path
+export function chooseSavePath(): Promise<string> {
+  return dialog.showSaveDialog({
+    title: 'Select the file path to save the CSV',
+    defaultPath: path.join(app.getPath('documents'), 'test_data.csv'),
+    filters: [{ name: 'CSV', extensions: ['csv'] }]
+  }).then(result => {
+    if (result.canceled || !result.filePath) {
+      throw new Error('No file path selected');
+    }
+    return result.filePath;
+  });
+}
+
+// Function to initialize CSV writer
+function initializeCsvWriter(filePath: string) {
+  csvWriter = createObjectCsvWriter({
+    path: filePath,
+    header: [
+      { id: 'intervalNumber', title: 'Interval number' },
+      { id: 'testLogId', title: 'Test Log ID' },
+      { id: 'force', title: 'Force' },
+      { id: 'position', title: 'Position' },
+      { id: 'velocity', title: 'Velocity' },
+      { id: 'timeSinceStart', title: 'Time since start' },
+      { id: 'measuredTemp', title: 'Measured Temp' },
+      { id: 'measuredPressure', title: 'Measured Pressure' }
+    ],
+    append: true
+  });
+}
+
+// Function to generate a unique Test Log ID
+function generateTestLogId(): string {
+  return `${Date.now()}`;
+}
+
+// Function to save data point
+async function saveDataPoint(data: any) {
+  intervalCounter++;
+  await csvWriter.writeRecords([{
+    intervalNumber: intervalCounter,
+    testLogId: testLogId,
+    force: data.force,
+    position: data.position,
+    velocity: data.velocity,
+    timeSinceStart: data.timeSinceStart,
+    measuredTemp: data.extra1, // Assuming extra1 is measured temp
+    measuredPressure: data.extra2 // Assuming extra2 is measured pressure
+  }]);
+}
+
+// Modified startRun function
+export async function startRun(portName: string): Promise<SerialPort> {
+  const savePath = await chooseSavePath();
+  initializeCsvWriter(savePath);
+  testLogId = generateTestLogId();
+  intervalCounter = 0;
+
   return new Promise((resolve, reject) => {
     const port = new SerialPort({ path: portName, baudRate: 9600 });
 
@@ -413,13 +479,13 @@ export function startRun(portName: string): Promise<SerialPort> {
         } else {
           console.log('Start run command sent');
           
-          // Set up listener for incoming data
-          port.on('data', (data: Buffer) => {
+          port.on('data', async (data: Buffer) => {
             try {
               const decryptedResponse = decryptData(data);
               const response = handleDataResponse(decryptedResponse);
               if (response) {
                 console.log('Received data:', response);
+                await saveDataPoint(response);
               }
             } catch (err) {
               console.error('Error processing incoming data:', err);
@@ -436,25 +502,6 @@ export function startRun(portName: string): Promise<SerialPort> {
     });
   });
 }
-  function handleDataResponse(response: Buffer) {
-    const parsed = parseDataResponse(response);
-    if (!parsed) return null;
-  
-    const { pktType, data } = parsed;
-    if (pktType === DYNO_RECV_MSG_DATA) {
-      const force = data.readFloatLE(0);
-      const position = data.readFloatLE(4);
-      const velocity = data.readFloatLE(8);
-      const timeSinceStart = data.readUInt32LE(12);
-      const extra1 = data.readFloatLE(16);
-      const extra2 = data.readFloatLE(20);
-  
-      return { force, position, velocity, timeSinceStart, extra1, extra2 };
-    } else {
-      console.log('Unexpected response type:', pktType);
-      return null;
-    }
-  }
 
 export function endRun(port: SerialPort): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -505,4 +552,24 @@ export function checkConnection(portName: string): Promise<boolean> {
         resolve(false);
       });
     });
+  }
+
+  function handleDataResponse(response: Buffer) {
+    const parsed = parseDataResponse(response);
+    if (!parsed) return null;
+  
+    const { pktType, data } = parsed;
+    if (pktType === DYNO_RECV_MSG_DATA) {
+      const force = data.readFloatLE(0);
+      const position = data.readFloatLE(4);
+      const velocity = data.readFloatLE(8);
+      const timeSinceStart = data.readUInt32LE(12);
+      const extra1 = data.readFloatLE(16);
+      const extra2 = data.readFloatLE(20);
+  
+      return { force, position, velocity, timeSinceStart, extra1, extra2 };
+    } else {
+      console.log('Unexpected response type:', pktType);
+      return null;
+    }
   }

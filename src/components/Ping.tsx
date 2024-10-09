@@ -90,13 +90,13 @@ const SerialCommunicationComponent = () => {
 
   const handleStartRun = async () => {
     try {
-      const response = await window.electron.startRun(portName);
+      const port = await window.electron.startRun(portName);
       setRunStatus('Run started');
       setIsRunning(true);
-      setIsConnected(true); // Assume connected when run starts
+      setIsConnected(true);
       setTimer(0);
       setError(null);
-      console.log('Start run response:', response);
+      console.log('Start run response:', port);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       console.error('Start run error:', errorMessage);
