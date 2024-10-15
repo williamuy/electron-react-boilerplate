@@ -457,12 +457,7 @@ async function saveDataPoint(data: any) {
 }
 
 // Modified startRun function
-export async function startRun(portName: string): Promise<SerialPort> {
-  const savePath = await chooseSavePath();
-  initializeCsvWriter(savePath);
-  testLogId = generateTestLogId();
-  intervalCounter = 0;
-
+export function startRun(portName: string): Promise<SerialPort> {
   return new Promise((resolve, reject) => {
     const port = new SerialPort({ path: portName, baudRate: 9600 });
 
@@ -479,13 +474,12 @@ export async function startRun(portName: string): Promise<SerialPort> {
         } else {
           console.log('Start run command sent');
           
-          port.on('data', async (data: Buffer) => {
+          port.on('data', (data: Buffer) => {
             try {
               const decryptedResponse = decryptData(data);
               const response = handleDataResponse(decryptedResponse);
               if (response) {
                 console.log('Received data:', response);
-                await saveDataPoint(response);
               }
             } catch (err) {
               console.error('Error processing incoming data:', err);
