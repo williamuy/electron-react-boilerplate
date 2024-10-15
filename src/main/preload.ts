@@ -57,6 +57,14 @@ const electronHandler = {
   startRun: (portName: string) => ipcRenderer.invoke('start-run', portName),
   endRun: (portName: string) => ipcRenderer.invoke('end-run'),
   checkConnection: (portName: string) => ipcRenderer.invoke('check-connection', portName),
+
+
+  queryTestLogs: () => ipcRenderer.invoke('query-test-logs'),
+  insertTestLog: (data: any) => ipcRenderer.invoke('insert-test-log', data),
+  updateTestLog: (data: any) => ipcRenderer.invoke('update-test-log', data),
+  deleteTestLog: (interval: number, testId: number) => ipcRenderer.invoke('delete-test-log', interval, testId),
+
+  
 };
 
 contextBridge.exposeInMainWorld('electron', electronHandler);

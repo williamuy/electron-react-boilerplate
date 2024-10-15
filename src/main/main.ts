@@ -99,6 +99,13 @@ import {
   handleQueryAdjusters,
   handleUpdateAdjuster,
   handleDeleteAdjuster,
+
+  handleQueryTestLogs,
+  handleInsertTestLog,
+  handleUpdateTestLog,
+  handleDeleteTestLog,
+
+
 } from './database';
 import { SerialPort } from 'serialport';
 
@@ -121,6 +128,11 @@ app.on('ready', () => {
   handleUpdateAdjuster();
   handleDeleteAdjuster();
 
+
+  handleQueryTestLogs();
+  handleInsertTestLog();
+  handleUpdateTestLog();
+  handleDeleteTestLog();
   // Rest of your app initialization code
 });
 

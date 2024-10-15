@@ -380,3 +380,67 @@ export const handleDeleteAdjuster = () => {
     });
   });
 };
+
+
+// ... existing imports and code ...
+
+export const handleQueryTestLogs = () => {
+  ipcMain.handle('query-test-logs', async (event, testId) => {
+    return new Promise((resolve, reject) => {
+      const query = testId 
+        ? `SELECT * FROM Test_Logs WHERE Test_ID = ?`
+        : `SELECT * FROM Test_Logs`;
+      db.all(query, testId ? [testId] : [], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+  });
+};
+
+export const handleInsertTestLog = () => {
+  ipcMain.handle('insert-test-log', async (event, data) => {
+    return new Promise((resolve, reject) => {
+      const query = `INSERT INTO Test_Logs (Interval, Test_ID, Force, Position, Velocity, Time_Since_Start, Ex1, Ex2) 
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+      db.run(
+        query,
+        [data.Interval, data.Test_ID, data.Force, data.Position, data.Velocity, data.Time_Since_Start, data.Ex1, data.Ex2],
+        (err) => {
+          if (err) reject(err);
+          else resolve('Test log inserted successfully');
+        },
+      );
+    });
+  });
+};
+
+export const handleUpdateTestLog = () => {
+  ipcMain.handle('update-test-log', async (event, data) => {
+    return new Promise((resolve, reject) => {
+      const query = `UPDATE Test_Logs 
+                     SET Force = ?, Position = ?, Velocity = ?, Time_Since_Start = ?, Ex1 = ?, Ex2 = ? 
+                     WHERE Interval = ? AND Test_ID = ?`;
+      db.run(
+        query,
+        [data.Force, data.Position, data.Velocity, data.Time_Since_Start, data.Ex1, data.Ex2, data.Interval, data.Test_ID],
+        (err) => {
+          if (err) reject(err);
+          else resolve('Test log updated successfully');
+        },
+      );
+    });
+  });
+};
+
+export const handleDeleteTestLog = () => {
+  ipcMain.handle('delete-test-log', async (event, interval, testId) => {
+    return new Promise((resolve, reject) => {
+      const query = `DELETE FROM Test_Logs WHERE Interval = ? AND Test_ID = ?`;
+      db.run(query, [interval, testId], (err) => {
+        if (err) reject(err);
+        else resolve('Test log deleted successfully');
+      });
+    });
+  });
+};

@@ -10,6 +10,7 @@ import ShockSetSelector from '../components/Selectors/ShockSetSelector';
 import ShockSelector from '../components/Selectors/ShockSelector';
 import ShockTestInitiator from '../components/Selectors/ShockTestInitiator';
 import Ping from '../components/Ping';
+import TestLogDB from '../components/TestLogDB'; // Import the new component
 
 const MainContainer = styled.div`
   padding: 2rem;
@@ -69,6 +70,7 @@ const App: React.FC = () => {
                 <MainButton to="/vehicles">Manage Vehicles</MainButton>
                 <MainButton to="/select-vehicle">Select Shock for Testing</MainButton>
                 <MainButton to="/ping">Ping</MainButton>
+                <MainButton to="/test-log-db">Test Log DB</MainButton> {/* New button */}
               </ButtonContainer>
             </MainContainer>
           }
@@ -85,6 +87,9 @@ const App: React.FC = () => {
         <Route path="/select-shock-set/:vehicleId" element={<ShockSetSelector />} />
         <Route path="/select-shock/:shockSetId" element={<ShockSelector />} />
         <Route path="/initiate-test/:shockId" element={<ShockTestInitiator />} />
+        
+        {/* New route for TestLogDB */}
+        <Route path="/test-log-db" element={<TestLogDB />} />
       </Routes>
     </Router>
   );
