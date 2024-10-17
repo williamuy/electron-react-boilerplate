@@ -64,6 +64,12 @@ const electronHandler = {
   updateTestLog: (data: any) => ipcRenderer.invoke('update-test-log', data),
   deleteTestLog: (interval: number, testId: number) => ipcRenderer.invoke('delete-test-log', interval, testId),
 
+
+  queryTestRecords: (userId?: number) => ipcRenderer.invoke('query-test-records', userId),
+  insertTestRecord: (data: any) => ipcRenderer.invoke('insert-test-record', data),
+  updateTestRecord: (data: any) => ipcRenderer.invoke('update-test-record', data),
+  deleteTestRecord: (userId: number, testId: number) => ipcRenderer.invoke('delete-test-record', userId, testId),
+
   
 };
 

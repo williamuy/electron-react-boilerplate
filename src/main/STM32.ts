@@ -396,7 +396,7 @@ function handleCommandResponse(response: Buffer, commandType: number) {
   }
 }
 
-import { app, dialog } from 'electron';
+import { app, dialog, ipcMain } from 'electron';
 import { createObjectCsvWriter } from 'csv-writer';
 import path from 'path';
 
@@ -456,7 +456,6 @@ async function saveDataPoint(data: any) {
   }]);
 }
 
-// Modified startRun function
 export function startRun(portName: string): Promise<SerialPort> {
   return new Promise((resolve, reject) => {
     const port = new SerialPort({ path: portName, baudRate: 9600 });
@@ -479,7 +478,18 @@ export function startRun(portName: string): Promise<SerialPort> {
               const decryptedResponse = decryptData(data);
               const response = handleDataResponse(decryptedResponse);
               if (response) {
-                console.log('Received data:', response);
+                console.log('Incoming data:', response);
+                // Instead of console.log, insert data into the database
+                ipcMain.emit('insert-test-log', null, {
+                  Interval: response.timeSinceStart, // Assuming timeSinceStart can be used as Interval
+                  Test_ID: Date.now(), // Generate a unique Test_ID
+                  Force: response.force,
+                  Position: response.position,
+                  Velocity: response.velocity,
+                  Time_Since_Start: response.timeSinceStart,
+                  Ex1: response.extra1,
+                  Ex2: response.extra2
+                });
               }
             } catch (err) {
               console.error('Error processing incoming data:', err);

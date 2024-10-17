@@ -444,3 +444,70 @@ export const handleDeleteTestLog = () => {
     });
   });
 };
+
+
+
+// Function to query Test Records
+export const handleQueryTestRecords = () => {
+  ipcMain.handle('query-test-records', async (event, userId) => {
+    return new Promise((resolve, reject) => {
+      const query = userId 
+        ? `SELECT * FROM Test_Records WHERE User_ID = ?`
+        : `SELECT * FROM Test_Records`;
+      db.all(query, userId ? [userId] : [], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+  });
+};
+
+// Function to insert a new Test Record
+export const handleInsertTestRecord = () => {
+  ipcMain.handle('insert-test-record', async (event, data) => {
+    return new Promise((resolve, reject) => {
+      const query = `INSERT INTO Test_Records (User_ID, Test_ID, Test_Type, Vehicle_Type_ID, Shock_Set_ID, Shock_ID, Number_Of_Clicks, LocationValue, LocationNumber, Date, Speed, Time_Started, Time_Ended, Dyno_Serial_Number, Recorded_IP_Address, Barometric_Pressure, Gas_Pressure, Strokes, Stroke_Length, Test_Log, Notes) 
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+      db.run(
+        query,
+        [data.User_ID, data.Test_ID, data.Test_Type, data.Vehicle_Type_ID, data.Shock_Set_ID, data.Shock_ID, data.Number_Of_Clicks, data.LocationValue, data.LocationNumber, data.Date, data.Speed, data.Time_Started, data.Time_Ended, data.Dyno_Serial_Number, data.Recorded_IP_Address, data.Barometric_Pressure, data.Gas_Pressure, data.Strokes, data.Stroke_Length, data.Test_Log, data.Notes],
+        (err) => {
+          if (err) reject(err);
+          else resolve('Test record inserted successfully');
+        }
+      );
+    });
+  });
+};
+
+// Function to update an existing Test Record
+export const handleUpdateTestRecord = () => {
+  ipcMain.handle('update-test-record', async (event, data) => {
+    return new Promise((resolve, reject) => {
+      const query = `UPDATE Test_Records 
+                     SET Test_Type = ?, Vehicle_Type_ID = ?, Shock_Set_ID = ?, Shock_ID = ?, Number_Of_Clicks = ?, LocationValue = ?, LocationNumber = ?, Date = ?, Speed = ?, Time_Started = ?, Time_Ended = ?, Dyno_Serial_Number = ?, Recorded_IP_Address = ?, Barometric_Pressure = ?, Gas_Pressure = ?, Strokes = ?, Stroke_Length = ?, Test_Log = ?, Notes = ?
+                     WHERE User_ID = ? AND Test_ID = ?`;
+      db.run(
+        query,
+        [data.Test_Type, data.Vehicle_Type_ID, data.Shock_Set_ID, data.Shock_ID, data.Number_Of_Clicks, data.LocationValue, data.LocationNumber, data.Date, data.Speed, data.Time_Started, data.Time_Ended, data.Dyno_Serial_Number, data.Recorded_IP_Address, data.Barometric_Pressure, data.Gas_Pressure, data.Strokes, data.Stroke_Length, data.Test_Log, data.Notes, data.User_ID, data.Test_ID],
+        (err) => {
+          if (err) reject(err);
+          else resolve('Test record updated successfully');
+        }
+      );
+    });
+  });
+};
+
+// Function to delete a Test Record
+export const handleDeleteTestRecord = () => {
+  ipcMain.handle('delete-test-record', async (event, userId, testId) => {
+    return new Promise((resolve, reject) => {
+      const query = `DELETE FROM Test_Records WHERE User_ID = ? AND Test_ID = ?`;
+      db.run(query, [userId, testId], (err) => {
+        if (err) reject(err);
+        else resolve('Test record deleted successfully');
+      });
+    });
+  });
+};

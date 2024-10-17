@@ -105,6 +105,10 @@ import {
   handleUpdateTestLog,
   handleDeleteTestLog,
 
+  handleQueryTestRecords,
+  handleInsertTestRecord,
+  handleUpdateTestRecord,
+  handleDeleteTestRecord,
 
 } from './database';
 import { SerialPort } from 'serialport';
@@ -133,6 +137,12 @@ app.on('ready', () => {
   handleInsertTestLog();
   handleUpdateTestLog();
   handleDeleteTestLog();
+
+  
+  handleQueryTestRecords();
+  handleInsertTestRecord();
+  handleUpdateTestRecord();
+  handleDeleteTestRecord();
   // Rest of your app initialization code
 });
 
